@@ -3,6 +3,10 @@
 
 
 problème : 
-- J'ai eu un truc bizarre où Joueur 1 bust mais gagne quand même
-- Après que joueur 1 ait validé une colonne, joueur 2 peux continuer a monter pour la valider. L'inverse est également vrai. Ducoup les deux joueurs peuvent compléter la même colonne (C'EST FIX, ENFIN JE CROIS)
-- Ici au moment de choisir une paire, on choisi toujours les deux résultats et non pas un seul comme dans le vrai jeux
+- Je pense que les joueurs peuvent continuer de jouer dans une colonne quand le marqueur temporaire atteint le sommet
+- Si deux paires sont identiques, l'algorithme note un seul dé possible
+Progression temporaire : {3: 5, 7: 11}
+Joueur 2 a choisi la paire (9,) avec les dés [3, 4, 6, 5].
+Joueur 2 s'arrête et sécurise ses progrès.
+
+Col  9 [12,12,12,12,12,12,2,2,.,] (après coup)

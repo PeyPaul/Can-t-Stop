@@ -74,23 +74,30 @@ class Game:
             move_made = False
             possible = []
             for a, b in pairs:
-                for val in (a, b):
-                    if val in temp_markers or len(temp_markers) < MAX_TEMP_MARKERS: # Vérification de la limite de marqueurs temporaires un à un
-                        if a in temp_markers or b in temp_markers or len(temp_markers) + 1 < MAX_TEMP_MARKERS: # Vérification de la limite jointe de marqueurs temporaires
-                            if a not in self.locked_columns and b not in self.locked_columns: # Vérification si les colonnes ne sont pas verrouillées
-                                possible.append(val)
+                if a not in self.locked_columns and b not in self.locked_columns: # Vérification si les colonnes ne sont pas verrouillées
+                    if (a in temp_markers and temp_markers[a] < COL_LENGTHS[a]) and (b in temp_markers and temp_markers[b] < COL_LENGTHS[b]): # Si les deux colonnes sont déjà en cours de progression
+                        possible.append((a,b))
+                        
+                    elif len(temp_markers) + 1 < MAX_TEMP_MARKERS: # Si on a suffisamment de marqueurs temporaires
+                        possible.append((a,b))
 
-                if possible:
-                    for val in possible:
-                        if val not in temp_markers:
-                            temp_markers[val] = player.progress[val]
-                        temp_markers[val] += 1
-                        if temp_markers[val] >= COL_LENGTHS[val]:
-                            self.locked_columns.add(val) # Verrouillage de la colonne
-                            player.completed.add(val)
-                            temp_markers[val] = COL_LENGTHS[val]
-                    move_made = True
-                    break
+                    elif (a in temp_markers and temp_markers[a] < COL_LENGTHS[a] and len(temp_markers) < MAX_TEMP_MARKERS) or (b in temp_markers and temp_markers[b] < COL_LENGTHS[b] and len(temp_markers) < MAX_TEMP_MARKERS): # Vérification de la limite de marqueurs temporaires un à un
+                        possible.append((a,b))
+                        
+                if (a,b) not in possible : # Si on ne peux pas prendre les deux, on regarde si on peux prendre un seul
+                    for val in (a, b):
+                        if val not in self.locked_columns and ((val in temp_markers and temp_markers[val] < COL_LENGTHS[val])or len(temp_markers) < MAX_TEMP_MARKERS):
+                            possible.append((val,))
+
+            if possible:
+                random.shuffle(possible)
+                choice = possible[0]  # Ici s'effectue le choix de la combinaison à jouer
+                print(f"{player.name} a choisi la paire {choice} avec les dés {dice}.")
+                for val in choice:
+                    if val not in temp_markers: # Si la colonne n'est pas déjà en cours de progression, on met un nouveau marqueur temporaire
+                        temp_markers[val] = player.progress[val]
+                    temp_markers[val] += 1             
+                move_made = True
 
             if not move_made:
                 busted = True
@@ -109,7 +116,11 @@ class Game:
 
         if not busted:
             for col, val in temp_markers.items():
-                player.progress[col] = val
+                player.progress[col] = val                
+                if player.progress[col] >= COL_LENGTHS[col]:  # Si la colonne est complétée
+                    self.locked_columns.add(col)  # Verrouillage de la colonne
+                    player.completed.add(col)
+                    self.board[col].append(player.name)
 
     def check_winner(self):
         for player in self.players:
