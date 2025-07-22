@@ -29,6 +29,7 @@ class Game:
         self.players = [Player("Joueur 1"), Player("Joueur 2")]
         self.current_player_index = 0
         self.board = {col: [] for col in COLUMNS}  # Liste des joueurs qui ont terminé chaque colonne
+        self.locked_columns = set() # set des colonnes verrouillées
 
     def roll_dice(self):
         return [random.randint(1, 6) for _ in range(4)]
@@ -51,11 +52,11 @@ class Game:
                         marker += player.name[-1]  # Dernière lettre du nom
                 if marker == "":
                     marker = "."
-                if player.name in self.board[col]:
-                    marker = "X"  # Colonne verrouillée
                 marker += ","
                 line += marker
             line += "]"
+            if col in self.locked_columns:
+                line += " (Verrouillée)"
             print(line)
 
     def play_turn(self, player):
@@ -65,15 +66,18 @@ class Game:
         while True:
             dice = self.roll_dice()
             pairs = self.get_pairs(dice)
-            random.shuffle(pairs)
+            
+            ### ici commence le choix des actions
+            
+            #random.shuffle(pairs)
 
             move_made = False
+            possible = []
             for a, b in pairs:
-                possible = []
                 for val in (a, b):
                     if val in temp_markers or len(temp_markers) < MAX_TEMP_MARKERS: # Vérification de la limite de marqueurs temporaires un à un
                         if a in temp_markers or b in temp_markers or len(temp_markers) + 1 < MAX_TEMP_MARKERS: # Vérification de la limite jointe de marqueurs temporaires
-                            if val not in self.board or player.name not in self.board[val]: # Vérification si la colonne n'est pas verrouillée
+                            if a not in self.locked_columns and b not in self.locked_columns: # Vérification si les colonnes ne sont pas verrouillées
                                 possible.append(val)
 
                 if possible:
@@ -82,7 +86,7 @@ class Game:
                             temp_markers[val] = player.progress[val]
                         temp_markers[val] += 1
                         if temp_markers[val] >= COL_LENGTHS[val]:
-                            self.board[val].append(player.name)
+                            self.locked_columns.add(val) # Verrouillage de la colonne
                             player.completed.add(val)
                             temp_markers[val] = COL_LENGTHS[val]
                     move_made = True
