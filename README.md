@@ -3,4 +3,4 @@
 
 
 problème : 
-- RAS pour l'instant
+- On peut continuer à jouer dans une colonne quand le marqueur temporaire atteint le sommet
