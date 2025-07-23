@@ -75,7 +75,10 @@ class Game:
             possible = []
             for a, b in pairs:
                 if a not in self.locked_columns and b not in self.locked_columns: # Vérification si les colonnes ne sont pas verrouillées
-                    if (a in temp_markers and temp_markers[a] < COL_LENGTHS[a]) and (b in temp_markers and temp_markers[b] < COL_LENGTHS[b]): # Si les deux colonnes sont déjà en cours de progression
+                    if a == b and ((a in temp_markers and temp_markers[a] < COL_LENGTHS[a]-1) or (a not in temp_markers and len(temp_markers) < MAX_TEMP_MARKERS and player.progress[a] < COL_LENGTHS[a]-1)): # Cas où on peut prendre deux fois la même colonne
+                        possible.append((a,b))
+                        
+                    elif (a in temp_markers and temp_markers[a] < COL_LENGTHS[a]) and (b in temp_markers and temp_markers[b] < COL_LENGTHS[b]): # Si les deux colonnes sont déjà en cours de progression
                         possible.append((a,b))
                         
                     elif len(temp_markers) + 1 < MAX_TEMP_MARKERS: # Si on a suffisamment de marqueurs temporaires
@@ -88,11 +91,12 @@ class Game:
                     for val in (a, b):
                         if val not in self.locked_columns and ((val in temp_markers and temp_markers[val] < COL_LENGTHS[val])or len(temp_markers) < MAX_TEMP_MARKERS):
                             possible.append((val,))
-
+                            
+            print(f"Dés tirés : {dice} ; Pairs disponibles : {pairs} ; Actions possibles : {possible}")
             if possible:
                 random.shuffle(possible)
                 choice = possible[0]  # Ici s'effectue le choix de la combinaison à jouer
-                print(f"{player.name} a choisi la paire {choice} avec les dés {dice}.")
+                print(f"{player.name} a choisi la paire {choice}")
                 for val in choice:
                     if val not in temp_markers: # Si la colonne n'est pas déjà en cours de progression, on met un nouveau marqueur temporaire
                         temp_markers[val] = player.progress[val]
@@ -102,10 +106,9 @@ class Game:
             if not move_made:
                 busted = True
                 print(f"{player.name} a busté!")
-                print(f"Paires de dés : {pairs}")
                 break
 
-            if random.random() < 0.5:
+            if random.random() < 0.75:
                 print(f"{player.name} décide de continuer.")
                 print(f"Progression temporaire : {temp_markers}")
                 continue
