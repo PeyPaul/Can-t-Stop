@@ -1,4 +1,8 @@
-from cant_stop.game_engine import GameState, COL_LENGTHS, COLUMNS
+
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from cant_stop.game_engine import GameState, COL_LENGTHS, COLUMNS, MAX_TEMP_MARKERS
 from cant_stop.players.human_player import HumanPlayer
 from cant_stop.players.random_ai import RandomAI
 
@@ -27,10 +31,27 @@ def play_turn(game_state, player):
         dice = game_state.roll_dice()
         pairs = game_state.get_pairs(dice)
         possible = []
-        # Logique de génération des actions possibles (à adapter)
+        # Adaptation à la nouvelle architecture : on utilise game_state pour locked_columns et player pour progress
         for a, b in pairs:
             if not game_state.is_column_locked(a) and not game_state.is_column_locked(b):
-                possible.append((a, b))
+                # Cas où on peut prendre deux fois la même colonne
+                if a == b and ((a in temp_markers and temp_markers[a] < COL_LENGTHS[a]-1) or (a not in temp_markers and len(temp_markers) < MAX_TEMP_MARKERS and player.progress[a] < COL_LENGTHS[a]-1)):
+                    possible.append((a,b))
+                # Si les deux colonnes sont déjà en cours de progression
+                elif a != b and (a in temp_markers and temp_markers[a] < COL_LENGTHS[a]) and (b in temp_markers and temp_markers[b] < COL_LENGTHS[b]):
+                    possible.append((a,b))
+                # Si on a suffisamment de marqueurs temporaires
+                elif a != b and len(temp_markers) + 1 < MAX_TEMP_MARKERS:
+                    possible.append((a,b))
+                # Vérification de la limite de marqueurs temporaires un à un
+                elif a != b and ((a in temp_markers and temp_markers[a] < COL_LENGTHS[a] and len(temp_markers) < MAX_TEMP_MARKERS) or (b in temp_markers and temp_markers[b] < COL_LENGTHS[b] and len(temp_markers) < MAX_TEMP_MARKERS)):
+                    possible.append((a,b))
+            # Si on ne peut pas prendre les deux, on regarde si on peut prendre un seul
+            if (a,b) not in possible:
+                for val in (a, b):
+                    if not game_state.is_column_locked(val) and ((val in temp_markers and temp_markers[val] < COL_LENGTHS[val]) or (val not in temp_markers and len(temp_markers) < MAX_TEMP_MARKERS)):
+                        possible.append((val,))
+
         if possible:
             choice = player.choose_action(possible, dice, pairs)
             print(f"{player.name} a choisi la paire {choice}")
