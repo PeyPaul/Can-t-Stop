@@ -106,15 +106,15 @@ class Game:
                 if a not in self.locked_columns and b not in self.locked_columns:
                     if a == b and ((a in temp_markers and temp_markers[a] < COL_LENGTHS[a]-1) or (a not in temp_markers and len(temp_markers) < MAX_TEMP_MARKERS and player.progress[a] < COL_LENGTHS[a]-1)):
                         possible.append((a,b))
-                    elif (a in temp_markers and temp_markers[a] < COL_LENGTHS[a]) and (b in temp_markers and temp_markers[b] < COL_LENGTHS[b]):
+                    elif a != b and (a in temp_markers and temp_markers[a] < COL_LENGTHS[a]) and (b in temp_markers and temp_markers[b] < COL_LENGTHS[b]):
                         possible.append((a,b))
-                    elif len(temp_markers) + 1 < MAX_TEMP_MARKERS:
+                    elif a != b and len(temp_markers) + 1 < MAX_TEMP_MARKERS:
                         possible.append((a,b))
-                    elif (a in temp_markers and temp_markers[a] < COL_LENGTHS[a] and len(temp_markers) < MAX_TEMP_MARKERS) or (b in temp_markers and temp_markers[b] < COL_LENGTHS[b] and len(temp_markers) < MAX_TEMP_MARKERS):
+                    elif a != b and ((a in temp_markers and temp_markers[a] < COL_LENGTHS[a] and len(temp_markers) < MAX_TEMP_MARKERS) or (b in temp_markers and temp_markers[b] < COL_LENGTHS[b] and len(temp_markers) < MAX_TEMP_MARKERS)):
                         possible.append((a,b))
                 if (a,b) not in possible:
                     for val in (a, b):
-                        if val not in self.locked_columns and ((val in temp_markers and temp_markers[val] < COL_LENGTHS[val]) or len(temp_markers) < MAX_TEMP_MARKERS):
+                        if val not in self.locked_columns and ((val in temp_markers and temp_markers[val] < COL_LENGTHS[val]) or (val not in temp_markers and len(temp_markers) < MAX_TEMP_MARKERS)):
                             possible.append((val,))
 
             if possible:
