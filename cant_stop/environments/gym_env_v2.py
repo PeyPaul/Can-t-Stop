@@ -14,7 +14,7 @@ class CantStopGymEnv(gym.Env):
     """
     metadata = {"render.modes": ["human"]}
 
-    def __init__(self):
+    def init_old(self):
         super().__init__()
         # Observation: progression du joueur RL + colonnes verrouillées
         self.observation_space = spaces.Box(low=0, high=13, shape=(len(COLUMNS) * 2,), dtype=np.int32)
@@ -25,7 +25,7 @@ class CantStopGymEnv(gym.Env):
         self.current_pairs = None
         self.done = False
 
-    def reset(self):# ,seed=None, options=None
+    def reset_old(self):# ,seed=None, options=None
         from players.random_ai import RandomAI
         from players.rl_agent import RLAgent
         self.players = [RLAgent("RL"), RandomAI("Random")]
@@ -36,7 +36,7 @@ class CantStopGymEnv(gym.Env):
         obs = self._get_obs()
         return obs
 
-    def step(self, action):
+    def step_old(self, action):
         player = self.players[self.game_state.current_player_index]
         if player.name != "RL":
             raise Exception("Seul l'agent RL doit jouer via step() !")
@@ -75,18 +75,18 @@ class CantStopGymEnv(gym.Env):
         info = {}
         return obs, reward, done, info
 
-    def render(self, mode="human"):
+    def render_old(self, mode="human"):
         from main import display_board
         display_board(self.players, self.game_state.board, self.game_state.locked_columns)
 
-    def _get_obs(self):
+    def _get_obs_old(self):
         # Progression RL + colonnes verrouillées
         rl = self.players[0]
         progress = [rl.progress.get(col, 0) for col in COLUMNS]
         locked = [1 if col in self.game_state.locked_columns else 0 for col in COLUMNS]
         return np.array(progress + locked, dtype=np.int32)
 
-    def _get_possible_actions(self, pairs, player):
+    def _get_possible_actions_old(self, pairs, player):
         # Génère les actions possibles comme dans main.py
         temp_markers = {col: player.progress.get(col, 0) for col in COLUMNS}
         possible = []
@@ -107,7 +107,7 @@ class CantStopGymEnv(gym.Env):
                         possible.append((val,))
         return possible
 
-    def _play_random_turn(self):
+    def _play_random_turn_old(self):
         # L'IA random joue automatiquement jusqu'à la fin de son tour
         player = self.players[self.game_state.current_player_index]
         while True:
