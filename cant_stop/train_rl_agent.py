@@ -1,8 +1,11 @@
 # train_rl_agent.py
 # Script d'entraînement PPO pour l'agent RL sur Can't Stop
 
-import gym as gym
+# import gym as gym
+import gymnasium as gym
+from gymnasium import spaces
 from stable_baselines3 import PPO
+from sb3_contrib import MaskablePPO
 from environments.gym_env import CantStopGymEnv
 
 if __name__ == "__main__":
@@ -13,7 +16,7 @@ if __name__ == "__main__":
     )
 
     env = gym.make("CantStop-v0")
-    model = PPO("MlpPolicy", env, verbose=1)
+    model = MaskablePPO("MlpPolicy", env, verbose=1)
     model.learn(total_timesteps=100)
     # Sauvegarde du modèle
     model.save("ppo_cantstop")

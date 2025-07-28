@@ -1,12 +1,8 @@
-# gym_env.py
-# Interface RL (optionnel, squelette)
-
-
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 import numpy as np
 np.bool = np.bool_ # Cette ligne est très importante
-from game_engine import GameState, COL_LENGTHS, COLUMNS
+from game_engine import GameState, COL_LENGTHS, COLUMNS, MAX_TEMP_MARKERS
 
 class CantStopGymEnv(gym.Env):
     """
@@ -14,28 +10,103 @@ class CantStopGymEnv(gym.Env):
     """
     metadata = {"render.modes": ["human"]}
 
-    def init_old(self):
-        super().__init__()
-        # Observation: progression du joueur RL + colonnes verrouillées
-        self.observation_space = spaces.Box(low=0, high=13, shape=(len(COLUMNS) * 2,), dtype=np.int32)
-        # Action: index de la paire ou colonne à choisir (max 6 possibilités)
-        self.action_space = spaces.Discrete(6)
+    def __init__(self):
+        super(CantStopGymEnv, self).__init__()
+        self.action_space = spaces.Discrete(12)
+        # IL RESTE À FAIRE : définir l'espace d'observation
+        obs_dim = 11 + 11 + 11 + 1 + 1 + 11 + 24
+        self.observation_space = spaces.Box(low=-1, high=13, shape=(obs_dim,), dtype=np.int32)
+        
         self.players = None
         self.game_state = None
-        self.current_pairs = None
+        self.possible = None
         self.done = False
-
-    def reset_old(self):# ,seed=None, options=None
+        self.temp_markers = {}
+        self.reward = 0
+        self.turn = 1
+        self.observations = None
+        self.info = None
+        
+    def reset(self, *, seed=None, options=None):
         from players.random_ai import RandomAI
         from players.rl_agent import RLAgent
-        self.players = [RLAgent("RL"), RandomAI("Random")]
+        self.done = False
+        self.players = [
+        RLAgent("RL"),
+        RandomAI("random")
+        ]
         for p in self.players:
             p.progress = {col: 0 for col in COLUMNS}
+        self.turn = 0
         self.game_state = GameState(self.players)
-        self.done = False
-        obs = self._get_obs()
-        return obs
+        
+        self.temp_markers = {}
+        player = self.game_state.get_current_player()
+        dice = self.game_state.roll_dice() #on tire les dés pour le premier tour de RL
+        pairs = self.game_state.get_pairs(dice)
+        self.possible = self.get_possible_actions(pairs, player,self.temp_markers)
 
+        self.observations = self.get_observation(self.possible, self.done, self.temp_markers)
+        self.info = self.get_information(self.possible)
+        return self.observations, self.info
+
+    def step(self, action): # A FAIRE : IMPLEMENTER LE MASQUE DES ACTIONS
+        player = self.game_state.get_current_player()
+        if self.should_continue_RL(self, action):
+            # on applique les choix de l'agent RL
+            self.temp_markers = self.play_turn_RL(self.game_state, player, action)
+            
+        else:
+            self.temp_markers = self.play_turn_RL(self.game_state, player, action)
+            self.temp_markers = {}
+
+            winner = self.game_state.check_winner()
+            if winner: 
+                self.done = True
+                self.reward = 10
+                
+            self.game_state.next_player()
+            player = self.game_state.get_current_player()
+            self.play_turn(self.game_state, player, action) # on joue le tour de l'IA random
+            
+            winner = self.game_state.check_winner()
+            if winner: 
+                self.done = True
+                self.reward = -10
+                
+            self.turn += 1
+            self.game_state.next_player()
+            player = self.game_state.get_current_player()
+            
+        # on tire à nouveau les dés
+        dice = self.game_state.roll_dice()
+        pairs = self.game_state.get_pairs(dice)
+        self.possible = self.get_possible_actions(pairs, player,self.temp_markers)
+
+        while not self.possible: # on gere le bust de RL (il ne peut buster que ici)
+            self.reward = -1
+            self.game_state.next_player()
+            player = self.game_state.get_current_player()
+            self.play_turn(self.game_state, player, action) # on joue le tour de l'IA random
+            winner = self.game_state.check_winner()
+            if winner: 
+                self.done = True
+                self.reward = -10
+            self.turn += 1
+            self.game_state.next_player()
+            player = self.game_state.get_current_player()
+            dice = self.game_state.roll_dice()
+            pairs = self.game_state.get_pairs(dice)
+            self.possible = self.get_possible_actions(pairs, player,self.temp_markers) 
+
+        self.observations = self.get_observation(self.possible, self.done)
+        
+        self.info = self.get_information(self.possible)
+        return self.observations, self.reward, self.done, False, self.info
+
+
+       
+    
     def step_old(self, action):
         player = self.players[self.game_state.current_player_index]
         if player.name != "RL":
@@ -48,7 +119,7 @@ class CantStopGymEnv(gym.Env):
         # Appliquer l'action choisi
         if action >= len(possible):
             # Action invalide : pénalité
-            reward = -1
+            self.reward = -1
             done = True
             info = {}
             return self._get_obs(), reward, done, info
@@ -79,52 +150,170 @@ class CantStopGymEnv(gym.Env):
         from main import display_board
         display_board(self.players, self.game_state.board, self.game_state.locked_columns)
 
-    def _get_obs_old(self):
-        # Progression RL + colonnes verrouillées
-        rl = self.players[0]
-        progress = [rl.progress.get(col, 0) for col in COLUMNS]
-        locked = [1 if col in self.game_state.locked_columns else 0 for col in COLUMNS]
-        return np.array(progress + locked, dtype=np.int32)
 
-    def _get_possible_actions_old(self, pairs, player):
-        # Génère les actions possibles comme dans main.py
-        temp_markers = {col: player.progress.get(col, 0) for col in COLUMNS}
-        possible = []
-        MAX_TEMP_MARKERS = 3
-        for a, b in pairs:
+    def get_observation(self, possible, done=False, temp_markers={}): 
+        player_progress = np.array([COL_LENGTHS[col] - self.players[0].progress[col] for col in COLUMNS], dtype=np.int32)  # 11 valeurs
+        opponent_progress = np.array([COL_LENGTHS[col] - self.players[1].progress[col] for col in COLUMNS], dtype=np.int32)  # 11 valeurs
+        temp_markers_progress = np.zeros(len(COLUMNS), dtype=np.int32)  # 11 valeurs A CHANGER PROBABLEMENT
+        player_completed = np.array([len(self.players[0].completed)], dtype=np.int32) # 1 valeur
+        opponent_completed = np.array([len(self.players[1].completed)], dtype=np.int32) # 1 valeur
+        locked_columns = np.array([1 if col in self.game_state.locked_columns else 0 for col in COLUMNS], dtype=np.int32)  # 11 valeurs
+        actions = np.full((12, 2), fill_value=-1, dtype=np.int32).flatten() # 12 paires possibles, 2 valeurs par paire
+
+        for i in range(12): #on remplis les actions à l'aide de possibles
+            val = possible.get(i)
+            if val is None:
+                actions[2*i] = -1
+                actions[2*i+1] = -1
+            elif len(val) == 2:
+                actions[2*i] = val[0]
+                actions[2*i+1] = val[1]
+            elif len(val) == 1:
+                actions[2*i] = val[0]
+                actions[2*i+1] = -1
+        
+        if done:
+            actions[:] = -1
+                
+        for idx in range(len(COLUMNS)): #on update les marqueurs temporaires
+            if idx in temp_markers.keys():
+                temp_markers_progress[idx] = temp_markers[idx]
+
+        
+        # choses qui pourraient être ajoutées :
+        # - nombre de marqueurs temporaires disponibles
+        # - les dés lancés (4 valeurs)
+        # - la taille des colonnes (11 valeurs)
+        # - le masque des actions
+        
+        self.observations = np.concatenate([
+            player_progress,
+            opponent_progress,
+            temp_markers_progress,
+            player_completed,
+            opponent_completed,
+            locked_columns,
+            actions
+        ])
+        return self.observations
+    
+    def get_information(self, possible):
+        action_mask = np.zeros(12, dtype=np.bool_)
+        for i in range(12):
+            if possible.get(i) is not None:
+                action_mask[i] = True
+            else:
+                action_mask[i] = False
+        return {
+            "action_mask": action_mask
+        }
+    
+    def get_possible_actions(self, pairs, player,temp_markers):
+        possible = {}
+        for i, (a, b) in enumerate(pairs):
             if not self.game_state.is_column_locked(a) and not self.game_state.is_column_locked(b):
+                # Cas où on peut prendre deux fois la même colonne
                 if a == b and ((a in temp_markers and temp_markers[a] < COL_LENGTHS[a]-1) or (a not in temp_markers and len(temp_markers) < MAX_TEMP_MARKERS and player.progress[a] < COL_LENGTHS[a]-1)):
-                    possible.append((a,b))
+                    possible[2*i] = (a, b) 
+                # Si les deux colonnes sont déjà en cours de progression
                 elif a != b and (a in temp_markers and temp_markers[a] < COL_LENGTHS[a]) and (b in temp_markers and temp_markers[b] < COL_LENGTHS[b]):
-                    possible.append((a,b))
+                    possible[2*i] = (a, b)
+                # Si on a suffisamment de marqueurs temporaires
                 elif a != b and len(temp_markers) + 1 < MAX_TEMP_MARKERS:
-                    possible.append((a,b))
+                    possible[2*i] = (a, b)
+                # Vérification de la limite de marqueurs temporaires un à un
                 elif a != b and ((a in temp_markers and temp_markers[a] < COL_LENGTHS[a] and len(temp_markers) < MAX_TEMP_MARKERS) or (b in temp_markers and temp_markers[b] < COL_LENGTHS[b] and len(temp_markers) < MAX_TEMP_MARKERS)):
-                    possible.append((a,b))
-            if (a,b) not in possible:
+                    possible[2*i] = (a, b)
+            # Si on ne peut pas prendre les deux, on regarde si on peut prendre un seul
+            if (a,b) not in possible.values():
                 for val in (a, b):
                     if not self.game_state.is_column_locked(val) and ((val in temp_markers and temp_markers[val] < COL_LENGTHS[val]) or (val not in temp_markers and len(temp_markers) < MAX_TEMP_MARKERS)):
-                        possible.append((val,))
+                        if val == a:
+                            possible[2*i] = (val,)
+                        else:
+                            possible[2*i + 1] = (val,)
         return possible
 
-    def _play_random_turn_old(self):
-        # L'IA random joue automatiquement jusqu'à la fin de son tour
-        player = self.players[self.game_state.current_player_index]
+    def play_turn_RL(self, game_state, player, action):
+        choice = self.choose_action_RL(player, self.possible, action)
+        for val in choice:
+            if val not in self.temp_markers:
+                self.temp_markers[val] = player.progress.get(val, 0)
+            self.temp_markers[val] += 1
+
+        if not self.should_continue_RL(player, action):
+            print(f"{player.name} s'arrête et sécurise ses progrès.")
+            for col, val in temp_markers.items():
+                player.progress[col] = val
+                if player.progress[col] >= COL_LENGTHS[col]:
+                    game_state.lock_column(col, player)
+                    if player.name == "RL":
+                        self.reward += 3
+        return temp_markers
+    
+    def play_turn(self, game_state, player, action): #on peut améliorer cette fonction car l'agent RL ne joue pas ici
+        temp_markers = {}
+        busted = False
         while True:
-            dice = self.game_state.roll_dice()
-            pairs = self.game_state.get_pairs(dice)
-            possible = self._get_possible_actions(pairs, player)
-            if not possible:
+            dice = game_state.roll_dice()
+            pairs = game_state.get_pairs(dice)
+            possible = self.get_possible_actions(pairs, player,temp_markers)
+
+            if possible:
+                if player.name == "RL":
+                    choice = player.choose_action_RL(player, possible, dice, pairs, action)
+                else:
+                    choice = self.choose_action_random(player, possible, dice, pairs)
+                print(f"{player.name} a choisi la paire {choice}")
+                for val in choice:
+                    if val not in temp_markers:
+                        temp_markers[val] = player.progress.get(val, 0)
+                    temp_markers[val] += 1
+            else:
+                busted = True
+                print(f"{player.name} a busté!")
                 break
-            choice = possible[0]
-            for val in choice:
-                if val not in player.progress:
-                    player.progress[val] = 0
-                player.progress[val] += 1
-                if player.progress[val] >= COL_LENGTHS[val]:
-                    self.game_state.lock_column(val, player)
-            # Fin de tour random (75% de continuer)
-            import random
-            if random.random() > 0.75:
+            print(f"Progression temporaire : {temp_markers}")
+            # Vérification de la décision de continuer ou non
+            if player.name == "RL" and player.should_continue_RL(player, action):
+                continue
+            elif player.should_continue_random(player):
+                continue
+            else:
+                print(f"{player.name} s'arrête et sécurise ses progrès.")
                 break
-        self.game_state.next_player()
+        if not busted:
+            for col, val in temp_markers.items():
+                player.progress[col] = val
+                if player.progress[col] >= COL_LENGTHS[col]:
+                    game_state.lock_column(col, player)
+                    if player.name == "RL":
+                        self.reward += 3
+        elif player.name == "RL":
+            self.reward += -1
+        return self.reward
+
+    def play_turn_RL(self, game_state, player, action): # A COMPLETER
+        temp_markers = {}
+        busted = False
+        pass
+
+    def choose_action_RL(self, player, possible, action):
+        # Implémentation de la logique de choix d'action pour l'agent RL
+        for i in possible.keys():
+            possible[i+6] = possible[i]
+        choice = possible[action]
+        return choice
+        
+    def choose_action_random(self, player, possible, dice, pairs):
+        # Implémentation de la logique de choix d'action pour l'IA random
+        choice = player.choose_action(possible.values(), dice, pairs)
+        return choice
+    
+    def should_continue_RL(self, player, action):
+        if action >= 6:
+            return False
+        return True
+    
+    def should_continue_random(self, player):
+        return player.should_continue()

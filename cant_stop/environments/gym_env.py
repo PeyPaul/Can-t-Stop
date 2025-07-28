@@ -2,8 +2,10 @@
 # Interface RL (optionnel, squelette)
 
 
-import gym
-from gym import spaces
+# import gym
+# from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 import numpy as np
 np.bool = np.bool_ # Cette ligne est très importante
 from game_engine import GameState, COL_LENGTHS, COLUMNS
@@ -25,7 +27,7 @@ class CantStopGymEnv(gym.Env):
         self.current_pairs = None
         self.done = False
 
-    def reset(self):# ,seed=None, options=None
+    def reset(self):# ,*, seed=None, options=None
         from players.random_ai import RandomAI
         from players.rl_agent import RLAgent
         self.players = [RLAgent("RL"), RandomAI("Random")]
@@ -34,7 +36,8 @@ class CantStopGymEnv(gym.Env):
         self.game_state = GameState(self.players)
         self.done = False
         obs = self._get_obs()
-        return obs
+        #info = {}
+        return obs#, info
 
     def step(self, action):
         player = self.players[self.game_state.current_player_index]
