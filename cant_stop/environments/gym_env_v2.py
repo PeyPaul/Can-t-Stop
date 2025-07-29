@@ -3,6 +3,7 @@ from gymnasium import spaces
 import numpy as np
 np.bool = np.bool_ # Cette ligne est très importante
 from game_engine import GameState, COL_LENGTHS, COLUMNS, MAX_TEMP_MARKERS
+import sys
 
 class CantStopGymEnv(gym.Env):
     """
@@ -27,7 +28,9 @@ class CantStopGymEnv(gym.Env):
         self.observations = None
         self.info = None
         
-    def reset(self, *, seed=None, options=None):
+    def reset(self, seed=None, options=None, **kwargs):
+        seed = kwargs.get('seed', None)
+        options = kwargs.get('options', None)
         from players.random_ai import RandomAI
         from players.rl_agent import RLAgent
         self.done = False
@@ -54,9 +57,11 @@ class CantStopGymEnv(gym.Env):
         player = self.game_state.get_current_player()
         if self.should_continue_RL(self, action):
             # on applique les choix de l'agent RL
+            print("tu joues ici ?","action choisie :", action)
             self.temp_markers = self.play_turn_RL(self.game_state, player, action)
             
         else:
+            print("ou tu joue là ?","action choisie :", action)
             self.temp_markers = self.play_turn_RL(self.game_state, player, action)
             self.temp_markers = {}
 
@@ -81,6 +86,8 @@ class CantStopGymEnv(gym.Env):
         # on tire à nouveau les dés
         dice = self.game_state.roll_dice()
         pairs = self.game_state.get_pairs(dice)
+        if self.temp_markers == None: #ça fix un problème mais je ne sais pas à quoi c'est dû
+            self.temp_markers = {}
         self.possible = self.get_possible_actions(pairs, player,self.temp_markers)
 
         while not self.possible: # on gere le bust de RL (il ne peut buster que ici)
@@ -146,7 +153,7 @@ class CantStopGymEnv(gym.Env):
         info = {}
         return obs, reward, done, info
 
-    def render_old(self, mode="human"):
+    def render(self, mode="human"):
         from main import display_board
         display_board(self.players, self.game_state.board, self.game_state.locked_columns)
 
@@ -160,6 +167,10 @@ class CantStopGymEnv(gym.Env):
         locked_columns = np.array([1 if col in self.game_state.locked_columns else 0 for col in COLUMNS], dtype=np.int32)  # 11 valeurs
         actions = np.full((12, 2), fill_value=-1, dtype=np.int32).flatten() # 12 paires possibles, 2 valeurs par paire
 
+        for i in range(6):
+            if i in possible.keys():
+                possible[i+6] = possible[i]
+        
         for i in range(12): #on remplis les actions à l'aide de possibles
             val = possible.get(i)
             if val is None:
@@ -199,6 +210,9 @@ class CantStopGymEnv(gym.Env):
     
     def get_information(self, possible):
         action_mask = np.zeros(12, dtype=np.bool_)
+        for i in range(6):
+            if i in possible.keys():
+                possible[i+6] = possible[i]
         for i in range(12):
             if possible.get(i) is not None:
                 action_mask[i] = True
@@ -213,21 +227,21 @@ class CantStopGymEnv(gym.Env):
         for i, (a, b) in enumerate(pairs):
             if not self.game_state.is_column_locked(a) and not self.game_state.is_column_locked(b):
                 # Cas où on peut prendre deux fois la même colonne
-                if a == b and ((a in temp_markers and temp_markers[a] < COL_LENGTHS[a]-1) or (a not in temp_markers and len(temp_markers) < MAX_TEMP_MARKERS and player.progress[a] < COL_LENGTHS[a]-1)):
+                if a == b and ((a in self.temp_markers and self.temp_markers[a] < COL_LENGTHS[a]-1) or (a not in self.temp_markers and len(self.temp_markers) < MAX_TEMP_MARKERS and player.progress[a] < COL_LENGTHS[a]-1)):
                     possible[2*i] = (a, b) 
                 # Si les deux colonnes sont déjà en cours de progression
-                elif a != b and (a in temp_markers and temp_markers[a] < COL_LENGTHS[a]) and (b in temp_markers and temp_markers[b] < COL_LENGTHS[b]):
+                elif a != b and (a in self.temp_markers and self.temp_markers[a] < COL_LENGTHS[a]) and (b in self.temp_markers and self.temp_markers[b] < COL_LENGTHS[b]):
                     possible[2*i] = (a, b)
                 # Si on a suffisamment de marqueurs temporaires
-                elif a != b and len(temp_markers) + 1 < MAX_TEMP_MARKERS:
+                elif a != b and len(self.temp_markers) + 1 < MAX_TEMP_MARKERS:
                     possible[2*i] = (a, b)
                 # Vérification de la limite de marqueurs temporaires un à un
-                elif a != b and ((a in temp_markers and temp_markers[a] < COL_LENGTHS[a] and len(temp_markers) < MAX_TEMP_MARKERS) or (b in temp_markers and temp_markers[b] < COL_LENGTHS[b] and len(temp_markers) < MAX_TEMP_MARKERS)):
+                elif a != b and ((a in self.temp_markers and self.temp_markers[a] < COL_LENGTHS[a] and len(self.temp_markers) < MAX_TEMP_MARKERS) or (b in self.temp_markers and self.temp_markers[b] < COL_LENGTHS[b] and len(self.temp_markers) < MAX_TEMP_MARKERS)):
                     possible[2*i] = (a, b)
             # Si on ne peut pas prendre les deux, on regarde si on peut prendre un seul
             if (a,b) not in possible.values():
                 for val in (a, b):
-                    if not self.game_state.is_column_locked(val) and ((val in temp_markers and temp_markers[val] < COL_LENGTHS[val]) or (val not in temp_markers and len(temp_markers) < MAX_TEMP_MARKERS)):
+                    if not self.game_state.is_column_locked(val) and ((val in self.temp_markers and self.temp_markers[val] < COL_LENGTHS[val]) or (val not in self.temp_markers and len(self.temp_markers) < MAX_TEMP_MARKERS)):
                         if val == a:
                             possible[2*i] = (val,)
                         else:
@@ -243,71 +257,63 @@ class CantStopGymEnv(gym.Env):
 
         if not self.should_continue_RL(player, action):
             print(f"{player.name} s'arrête et sécurise ses progrès.")
-            for col, val in temp_markers.items():
+            for col, val in self.temp_markers.items():
                 player.progress[col] = val
                 if player.progress[col] >= COL_LENGTHS[col]:
                     game_state.lock_column(col, player)
                     if player.name == "RL":
                         self.reward += 3
-        return temp_markers
+        return self.temp_markers
     
     def play_turn(self, game_state, player, action): #on peut améliorer cette fonction car l'agent RL ne joue pas ici
-        temp_markers = {}
+        self.temp_markers = {}
         busted = False
         while True:
             dice = game_state.roll_dice()
             pairs = game_state.get_pairs(dice)
-            possible = self.get_possible_actions(pairs, player,temp_markers)
+            possible = self.get_possible_actions(pairs, player,self.temp_markers)
 
             if possible:
-                if player.name == "RL":
-                    choice = player.choose_action_RL(player, possible, dice, pairs, action)
-                else:
-                    choice = self.choose_action_random(player, possible, dice, pairs)
+                choice = self.choose_action_random(player, possible, dice, pairs)
                 print(f"{player.name} a choisi la paire {choice}")
                 for val in choice:
-                    if val not in temp_markers:
-                        temp_markers[val] = player.progress.get(val, 0)
-                    temp_markers[val] += 1
+                    if val not in self.temp_markers:
+                        self.temp_markers[val] = player.progress.get(val, 0)
+                    self.temp_markers[val] += 1
             else:
                 busted = True
                 print(f"{player.name} a busté!")
+                #sys.exit()
                 break
-            print(f"Progression temporaire : {temp_markers}")
+            print(f"Progression temporaire : {self.temp_markers}")
             # Vérification de la décision de continuer ou non
-            if player.name == "RL" and player.should_continue_RL(player, action):
-                continue
-            elif player.should_continue_random(player):
+            if self.should_continue_random(player):
                 continue
             else:
                 print(f"{player.name} s'arrête et sécurise ses progrès.")
                 break
         if not busted:
-            for col, val in temp_markers.items():
+            for col, val in self.temp_markers.items():
                 player.progress[col] = val
                 if player.progress[col] >= COL_LENGTHS[col]:
                     game_state.lock_column(col, player)
-                    if player.name == "RL":
-                        self.reward += 3
-        elif player.name == "RL":
-            self.reward += -1
         return self.reward
-
-    def play_turn_RL(self, game_state, player, action): # A COMPLETER
-        temp_markers = {}
-        busted = False
-        pass
 
     def choose_action_RL(self, player, possible, action):
         # Implémentation de la logique de choix d'action pour l'agent RL
-        for i in possible.keys():
-            possible[i+6] = possible[i]
-        choice = possible[action]
+        for i in range(6):
+            if i in possible.keys():
+                possible[i+6] = possible[i]
+        print(possible)
+        print(action)
+        print(self.info)
+        self.render()
+        choice = possible[action+0]
         return choice
         
     def choose_action_random(self, player, possible, dice, pairs):
         # Implémentation de la logique de choix d'action pour l'IA random
-        choice = player.choose_action(possible.values(), dice, pairs)
+        choice = player.choose_action(list(possible.values()), dice, pairs)
         return choice
     
     def should_continue_RL(self, player, action):
@@ -316,4 +322,16 @@ class CantStopGymEnv(gym.Env):
         return True
     
     def should_continue_random(self, player):
+        return False
         return player.should_continue()
+    
+    def get_action_mask(self):
+        """
+        Méthode requise par ActionMasker wrapper pour l'action masking.
+        Retourne le masque d'actions valides.
+        """
+        if hasattr(self, 'info') and self.info is not None and 'action_mask' in self.info:
+            return self.info['action_mask']
+        else:
+            # Fallback: toutes les actions sont valides si pas d'info disponible
+            return np.ones(12, dtype=np.bool_)

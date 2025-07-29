@@ -13,4 +13,4 @@ class RandomAI:
         return possible_actions[0]
 
     def should_continue(self):
-        return random.random() < 0.75
+        return random.random() < 0.75 

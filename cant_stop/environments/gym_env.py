@@ -27,7 +27,7 @@ class CantStopGymEnv(gym.Env):
         self.current_pairs = None
         self.done = False
 
-    def reset(self):# ,*, seed=None, options=None
+    def reset(self, seed=None, options=None, **kwargs):# ,*, seed=None, options=None
         from players.random_ai import RandomAI
         from players.rl_agent import RLAgent
         self.players = [RLAgent("RL"), RandomAI("Random")]
