@@ -27,6 +27,7 @@ class CantStopGymEnv(gym.Env):
         self.turn = 1
         self.observations = None
         self.info = None
+        self.possible = {}
         
     def reset(self, seed=None, options=None, **kwargs):
         seed = kwargs.get('seed', None)
@@ -57,11 +58,9 @@ class CantStopGymEnv(gym.Env):
         player = self.game_state.get_current_player()
         if self.should_continue_RL(self, action):
             # on applique les choix de l'agent RL
-            print("tu joues ici ?","action choisie :", action)
             self.temp_markers = self.play_turn_RL(self.game_state, player, action)
             
         else:
-            print("ou tu joue là ?","action choisie :", action)
             self.temp_markers = self.play_turn_RL(self.game_state, player, action)
             self.temp_markers = {}
 
@@ -73,6 +72,7 @@ class CantStopGymEnv(gym.Env):
             self.game_state.next_player()
             player = self.game_state.get_current_player()
             self.play_turn(self.game_state, player, action) # on joue le tour de l'IA random
+            self.temp_markers = {}
             
             winner = self.game_state.check_winner()
             if winner: 
@@ -82,7 +82,8 @@ class CantStopGymEnv(gym.Env):
             self.turn += 1
             self.game_state.next_player()
             player = self.game_state.get_current_player()
-            
+            print(f"\n--- Tour {self.turn} : {player.name} ---")
+
         # on tire à nouveau les dés
         dice = self.game_state.roll_dice()
         pairs = self.game_state.get_pairs(dice)
@@ -91,6 +92,7 @@ class CantStopGymEnv(gym.Env):
         self.possible = self.get_possible_actions(pairs, player,self.temp_markers)
 
         while not self.possible: # on gere le bust de RL (il ne peut buster que ici)
+            print(f"{player.name} a busté !")
             self.reward = -1
             self.game_state.next_player()
             player = self.game_state.get_current_player()
@@ -102,6 +104,7 @@ class CantStopGymEnv(gym.Env):
             self.turn += 1
             self.game_state.next_player()
             player = self.game_state.get_current_player()
+            print(f"\n--- Tour {self.turn} : {player.name} ---")
             dice = self.game_state.roll_dice()
             pairs = self.game_state.get_pairs(dice)
             self.possible = self.get_possible_actions(pairs, player,self.temp_markers) 
@@ -111,47 +114,6 @@ class CantStopGymEnv(gym.Env):
         self.info = self.get_information(self.possible)
         return self.observations, self.reward, self.done, False, self.info
 
-
-       
-    
-    def step_old(self, action):
-        player = self.players[self.game_state.current_player_index]
-        if player.name != "RL":
-            raise Exception("Seul l'agent RL doit jouer via step() !")
-        # Lancer les dés et générer les paires
-        dice = self.game_state.roll_dice()
-        pairs = self.game_state.get_pairs(dice)
-        self.current_pairs = pairs
-        possible = self._get_possible_actions(pairs, player)
-        # Appliquer l'action choisi
-        if action >= len(possible):
-            # Action invalide : pénalité
-            self.reward = -1
-            done = True
-            info = {}
-            return self._get_obs(), reward, done, info
-        choice = possible[action]
-        for val in choice:
-            if val not in player.progress:
-                player.progress[val] = 0
-            player.progress[val] += 1
-            if player.progress[val] >= COL_LENGTHS[val]:
-                self.game_state.lock_column(val, player)
-        # Récompense : +1 par colonne complétée, +10 si victoire
-        reward = sum([1 for col in choice if player.progress[col] >= COL_LENGTHS[col]])
-        winner = self.game_state.check_winner()
-        done = False
-        if winner == player:
-            reward += 10
-            done = True
-        # Tour suivant
-        self.game_state.next_player()
-        # L'IA random joue automatiquement
-        if not done:
-            self._play_random_turn()
-        obs = self._get_obs()
-        info = {}
-        return obs, reward, done, info
 
     def render(self, mode="human"):
         from main import display_board
@@ -219,7 +181,8 @@ class CantStopGymEnv(gym.Env):
             else:
                 action_mask[i] = False
         return {
-            "action_mask": action_mask
+            "action_mask": action_mask,
+            "possible": possible
         }
     
     def get_possible_actions(self, pairs, player,temp_markers):
@@ -268,6 +231,7 @@ class CantStopGymEnv(gym.Env):
     def play_turn(self, game_state, player, action): #on peut améliorer cette fonction car l'agent RL ne joue pas ici
         self.temp_markers = {}
         busted = False
+        print(f"\n--- Tour {self.turn} : {player.name} ---")
         while True:
             dice = game_state.roll_dice()
             pairs = game_state.get_pairs(dice)
@@ -304,11 +268,15 @@ class CantStopGymEnv(gym.Env):
         for i in range(6):
             if i in possible.keys():
                 possible[i+6] = possible[i]
-        print(possible)
-        print(action)
-        print(self.info)
-        self.render()
+        
+        action = int(action) # TEST TEST TEST
+        
+        if action not in possible.keys():
+            # Choisir une action valide par défaut ou lever une exception explicite
+            print(f"Action {action} non valide, choix possible : {list(possible.keys())}")
+            action = min(possible.keys())  # ou random.choice(list(possible.keys()))
         choice = possible[action+0]
+        print(f"Action choisie par l'agent RL : {choice}")
         return choice
         
     def choose_action_random(self, player, possible, dice, pairs):
@@ -322,7 +290,6 @@ class CantStopGymEnv(gym.Env):
         return True
     
     def should_continue_random(self, player):
-        return False
         return player.should_continue()
     
     def get_action_mask(self):
