@@ -26,8 +26,8 @@ if __name__ == "__main__":
         env.reset()
         env = ActionMasker(env, mask_fn)
         model = MaskablePPO("MlpPolicy", env=env, verbose=1)
-        model.learn(total_timesteps=1)
-        
+        # model.learn(total_timesteps=1)
+
         # Sauvegarde du modèle
         print("Modèle PPO entraîné et sauvegardé.")
 
@@ -37,9 +37,7 @@ if __name__ == "__main__":
         done = False
         
         while not done:
-            print("Action mask :", info["action_mask"])
-            print("possibles :", info["possible"])
-            print("Actions possibles :", [i for i, valid in enumerate(info["action_mask"]) if valid])
+            print("Observation :", obs)
             action = model.predict(obs, deterministic=True, action_masks=info["action_mask"])[0]
             print(f"Action choisie : {action}")
             obs, reward, done, truncated, info = env.step(action)

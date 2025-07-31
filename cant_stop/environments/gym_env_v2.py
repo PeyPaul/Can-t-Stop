@@ -149,10 +149,9 @@ class CantStopGymEnv(gym.Env):
             actions[:] = -1
                 
         for idx in range(len(COLUMNS)): #on update les marqueurs temporaires
-            if idx in temp_markers.keys():
-                temp_markers_progress[idx] = temp_markers[idx]
+            if idx+2 in self.temp_markers.keys():
+                temp_markers_progress[idx] = self.temp_markers[idx+2]
 
-        
         # choses qui pourraient être ajoutées :
         # - nombre de marqueurs temporaires disponibles
         # - les dés lancés (4 valeurs)
