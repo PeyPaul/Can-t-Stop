@@ -33,8 +33,9 @@ class CantStopGymEnv(gym.Env):
         seed = kwargs.get('seed', None)
         options = kwargs.get('options', None)
         from players.random_ai import RandomAI
-        from players.rl_agent import RLAgent
+        from players.rl_agent_training import RLAgent
         self.done = False
+        self.reward = 0
         self.players = [
         RLAgent("RL"),
         RandomAI("random")
@@ -67,7 +68,7 @@ class CantStopGymEnv(gym.Env):
             winner = self.game_state.check_winner()
             if winner: 
                 self.done = True
-                self.reward = 10
+                self.reward += 10
                 
             self.game_state.next_player()
             player = self.game_state.get_current_player()
@@ -77,7 +78,7 @@ class CantStopGymEnv(gym.Env):
             winner = self.game_state.check_winner()
             if winner: 
                 self.done = True
-                self.reward = -10
+                self.reward += -10
                 
             self.turn += 1
             self.game_state.next_player()
@@ -93,14 +94,14 @@ class CantStopGymEnv(gym.Env):
 
         while not self.possible: # on gere le bust de RL (il ne peut buster que ici)
             print(f"{player.name} a busté !")
-            self.reward = -1
+            self.reward += -1
             self.game_state.next_player()
             player = self.game_state.get_current_player()
             self.play_turn(self.game_state, player, action) # on joue le tour de l'IA random
             winner = self.game_state.check_winner()
             if winner: 
                 self.done = True
-                self.reward = -10
+                self.reward += -10
             self.turn += 1
             self.game_state.next_player()
             player = self.game_state.get_current_player()
@@ -260,6 +261,7 @@ class CantStopGymEnv(gym.Env):
                 player.progress[col] = val
                 if player.progress[col] >= COL_LENGTHS[col]:
                     game_state.lock_column(col, player)
+                    self.reward += -2
         return self.reward
 
     def choose_action_RL(self, player, possible, action):

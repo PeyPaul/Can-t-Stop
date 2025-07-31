@@ -5,6 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from cant_stop.game_engine import GameState, COL_LENGTHS, COLUMNS, MAX_TEMP_MARKERS
 from cant_stop.players.human_player import HumanPlayer
 from cant_stop.players.random_ai import RandomAI
+from cant_stop.players.rl_agent import RLAgent
 
 def display_board(players, board, locked_columns):
     print("\nPlateau de jeu :")
@@ -53,7 +54,7 @@ def play_turn(game_state, player):
                         possible.append((val,))
 
         if possible:
-            choice = player.choose_action(possible, dice, pairs)
+            choice = player.choose_action(possible, dice, pairs, temp_markers, game_state)
             print(f"{player.name} a choisi la paire {choice}")
             for val in choice:
                 if val not in temp_markers:
@@ -77,8 +78,8 @@ def play_turn(game_state, player):
 
 def main():
     players = [
-        HumanPlayer("Joueur 1"),
-        RandomAI("Joueur 2")
+        RLAgent("Joueur 1"),
+        HumanPlayer("Joueur 2")
     ]
     for p in players:
         p.progress = {col: 0 for col in COLUMNS}

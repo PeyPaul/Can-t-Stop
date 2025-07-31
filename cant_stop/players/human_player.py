@@ -7,7 +7,7 @@ class HumanPlayer:
         self.progress = {}
         self.completed = set()
 
-    def choose_action(self, possible_actions, dice, pairs):
+    def choose_action(self, possible_actions, dice, pairs, temp_markers, game_state):
         print(f"\n{self.name}, à toi de jouer !")
         print(f"Dés tirés : {dice}")
         print(f"Paires disponibles : {pairs}")

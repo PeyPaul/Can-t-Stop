@@ -29,7 +29,7 @@ class CantStopGymEnv(gym.Env):
 
     def reset(self, seed=None, options=None, **kwargs):# ,*, seed=None, options=None
         from players.random_ai import RandomAI
-        from players.rl_agent import RLAgent
+        from cant_stop.players.rl_agent_training import RLAgent
         self.players = [RLAgent("RL"), RandomAI("Random")]
         for p in self.players:
             p.progress = {col: 0 for col in COLUMNS}
