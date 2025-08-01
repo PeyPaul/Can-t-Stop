@@ -11,7 +11,8 @@ from environments.gym_env_v2 import CantStopGymEnv
 import sys
 import os
 
-model_dir = "models"
+model_dir = "models/PPO-1754059837"
+model_path = os.path.join(model_dir, "ppo_cant_stop_3800000.zip")
         
 class RLAgent:
     def __init__(self, name): # ça a l'air bon
@@ -24,7 +25,8 @@ class RLAgent:
         env.reset()
         env = ActionMasker(env, mask_fn)
         model = MaskablePPO("MlpPolicy", env=env, verbose=1)
-        model.load(os.path.join(model_dir, "ppo_cant_stop"))
+        model.load(model_path)  # Charger le modèle pré-entraîné
+        print(f"Modèle chargé depuis {model_path}")
         env.reset()
         self.model = model
         self.action = None

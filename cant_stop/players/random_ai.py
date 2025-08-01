@@ -8,7 +8,7 @@ class RandomAI:
         self.progress = {}
         self.completed = set()
 
-    def choose_action(self, possible_actions, dice, pairs, temp_markers, game_state):
+    def choose_action(self, possible_actions, dice, pairs, temp_markers=None, game_state=None):
         random.shuffle(possible_actions)
         return possible_actions[0]
 

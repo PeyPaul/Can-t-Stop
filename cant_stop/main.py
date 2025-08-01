@@ -79,7 +79,7 @@ def play_turn(game_state, player):
 def main():
     players = [
         RLAgent("Joueur 1"),
-        HumanPlayer("Joueur 2")
+        RandomAI("Joueur 2")
     ]
     for p in players:
         p.progress = {col: 0 for col in COLUMNS}

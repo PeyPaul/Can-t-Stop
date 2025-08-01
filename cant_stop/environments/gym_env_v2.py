@@ -83,7 +83,7 @@ class CantStopGymEnv(gym.Env):
             self.turn += 1
             self.game_state.next_player()
             player = self.game_state.get_current_player()
-            print(f"\n--- Tour {self.turn} : {player.name} ---")
+            # print(f"\n--- Tour {self.turn} : {player.name} ---")
 
         # on tire à nouveau les dés
         dice = self.game_state.roll_dice()
@@ -93,7 +93,7 @@ class CantStopGymEnv(gym.Env):
         self.possible = self.get_possible_actions(pairs, player,self.temp_markers)
 
         while not self.possible: # on gere le bust de RL (il ne peut buster que ici)
-            print(f"{player.name} a busté !")
+            # print(f"{player.name} a busté !")
             self.reward += -1
             self.game_state.next_player()
             player = self.game_state.get_current_player()
@@ -105,7 +105,7 @@ class CantStopGymEnv(gym.Env):
             self.turn += 1
             self.game_state.next_player()
             player = self.game_state.get_current_player()
-            print(f"\n--- Tour {self.turn} : {player.name} ---")
+            # print(f"\n--- Tour {self.turn} : {player.name} ---")
             dice = self.game_state.roll_dice()
             pairs = self.game_state.get_pairs(dice)
             self.possible = self.get_possible_actions(pairs, player,self.temp_markers) 
@@ -219,7 +219,7 @@ class CantStopGymEnv(gym.Env):
             self.temp_markers[val] += 1
 
         if not self.should_continue_RL(player, action):
-            print(f"{player.name} s'arrête et sécurise ses progrès.")
+            # print(f"{player.name} s'arrête et sécurise ses progrès.")
             for col, val in self.temp_markers.items():
                 player.progress[col] = val
                 if player.progress[col] >= COL_LENGTHS[col]:
@@ -231,7 +231,7 @@ class CantStopGymEnv(gym.Env):
     def play_turn(self, game_state, player, action): #on peut améliorer cette fonction car l'agent RL ne joue pas ici
         self.temp_markers = {}
         busted = False
-        print(f"\n--- Tour {self.turn} : {player.name} ---")
+        #print(f"\n--- Tour {self.turn} : {player.name} ---")
         while True:
             dice = game_state.roll_dice()
             pairs = game_state.get_pairs(dice)
@@ -239,22 +239,22 @@ class CantStopGymEnv(gym.Env):
 
             if possible:
                 choice = self.choose_action_random(player, possible, dice, pairs)
-                print(f"{player.name} a choisi la paire {choice}")
+                # print(f"{player.name} a choisi la paire {choice}")
                 for val in choice:
                     if val not in self.temp_markers:
                         self.temp_markers[val] = player.progress.get(val, 0)
                     self.temp_markers[val] += 1
             else:
                 busted = True
-                print(f"{player.name} a busté!")
+                # print(f"{player.name} a busté!")
                 #sys.exit()
                 break
-            print(f"Progression temporaire : {self.temp_markers}")
+            # print(f"Progression temporaire : {self.temp_markers}")
             # Vérification de la décision de continuer ou non
             if self.should_continue_random(player):
                 continue
             else:
-                print(f"{player.name} s'arrête et sécurise ses progrès.")
+                # print(f"{player.name} s'arrête et sécurise ses progrès.")
                 break
         if not busted:
             for col, val in self.temp_markers.items():
@@ -274,10 +274,10 @@ class CantStopGymEnv(gym.Env):
         
         if action not in possible.keys():
             # Choisir une action valide par défaut ou lever une exception explicite
-            print(f"Action {action} non valide, choix possible : {list(possible.keys())}")
+            # print(f"Action {action} non valide, choix possible : {list(possible.keys())}")
             action = min(possible.keys())  # ou random.choice(list(possible.keys()))
         choice = possible[action+0]
-        print(f"Action choisie par l'agent RL : {choice}")
+        # print(f"Action choisie par l'agent RL : {choice}")
         return choice
         
     def choose_action_random(self, player, possible, dice, pairs):
