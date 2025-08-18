@@ -11,8 +11,8 @@ from environments.gym_env_v2 import CantStopGymEnv
 import sys
 import os
 
-model_dir = "models/PPO-1754059837"
-model_path = os.path.join(model_dir, "ppo_cant_stop_3800000.zip")
+model_dir = "models/PPO-1755530189"
+model_path = os.path.join(model_dir, "ppo_cant_stop_2200000.zip")
         
 class RLAgent:
     def __init__(self, name): # ça a l'air bon

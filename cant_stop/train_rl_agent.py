@@ -37,7 +37,7 @@ if __name__ == "__main__":
     env.reset()
     env = ActionMasker(env, mask_fn)
     model = MaskablePPO("MlpPolicy", env=env, verbose=1, tensorboard_log=log_dir)
-    for i in range(1, 25):
+    for i in range(1, 12):
         model.learn(total_timesteps=total_timesteps, reset_num_timesteps=False, tb_log_name="ppo_cant_stop")
         model.save(os.path.join(model_dir, f"ppo_cant_stop_{total_timesteps * i}"))
         print("Modèle PPO entraîné et sauvegardé.")

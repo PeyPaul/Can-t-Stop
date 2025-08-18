@@ -68,7 +68,7 @@ class CantStopGymEnv(gym.Env):
             winner = self.game_state.check_winner()
             if winner: 
                 self.done = True
-                self.reward += 10
+                self.reward += 40 - self.turn
                 
             self.game_state.next_player()
             player = self.game_state.get_current_player()
@@ -261,7 +261,7 @@ class CantStopGymEnv(gym.Env):
                 player.progress[col] = val
                 if player.progress[col] >= COL_LENGTHS[col]:
                     game_state.lock_column(col, player)
-                    self.reward += -2
+                    # self.reward += -2
         return self.reward
 
     def choose_action_RL(self, player, possible, action):
