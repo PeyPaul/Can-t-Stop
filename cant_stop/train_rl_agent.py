@@ -1,5 +1,28 @@
-# train_rl_agent.py
-# Script d'entraînement PPO pour l'agent RL sur Can't Stop
+## Callback de watchdog
+
+from stable_baselines3.common.callbacks import BaseCallback
+import time
+
+class WatchdogCallback(BaseCallback):
+    def __init__(self, max_silence_sec=1200, verbose=1):
+        super().__init__(verbose)
+        self.max_silence_sec = max_silence_sec
+        self.last_update = time.time()
+        self.last_steps = 0
+
+    def _on_step(self) -> bool:
+        # self.num_timesteps = steps totaux vus par SB3
+        if self.num_timesteps > self.last_steps:
+            self.last_steps = self.num_timesteps
+            self.last_update = time.time()
+        else:
+            if time.time() - self.last_update > self.max_silence_sec:
+                print(f"[WATCHDOG] Freeze suspecté à {self.num_timesteps} steps. Abort.")
+                return False  # stoppe l'entraînement proprement
+        if self.n_calls % 10000 == 0:
+            print(f"[HB] {self.num_timesteps} steps...")
+        return True
+    
 
 # import gym as gym
 import gymnasium as gym
@@ -32,13 +55,14 @@ if __name__ == "__main__":
         entry_point="environments.gym_env_v2:CantStopGymEnv"
     )
 
-    env = gym.make("CantStop-v0")
+    #env = gym.make("CantStop-v0")
     env = CantStopGymEnv()
     env.reset()
     env = ActionMasker(env, mask_fn)
     model = MaskablePPO("MlpPolicy", env=env, verbose=1, tensorboard_log=log_dir)
+    callback = WatchdogCallback(max_silence_sec=1200)
     for i in range(1, 20):
-        model.learn(total_timesteps=total_timesteps, reset_num_timesteps=False, tb_log_name="ppo_cant_stop")
+        model.learn(total_timesteps=total_timesteps, reset_num_timesteps=False, tb_log_name="ppo_cant_stop", callback=callback, progress_bar=True)
         model.save(os.path.join(model_dir, f"ppo_cant_stop_{total_timesteps * i}"))
         print("Modèle PPO entraîné et sauvegardé.")
         
