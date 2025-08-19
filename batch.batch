@@ -1,0 +1,33 @@
+#!/bin/bash
+#
+#SBATCH --job-name=Cant-stop                                    ## Choisir le nom du job
+#SBATCH --output=/raid/home/automatants/peytevin_pau/Can-t-Stop/out4.out               ## Choisir le nom du fichier de sortie 
+#SBATCH --error=/raid/home/automatants/peytevin_pau/Can-t-Stop/out4.out                ## Choisir le nom du fichier d'erreur (mettre le même permet d'obtenir la sortie python dans un seul fichier)
+
+## Si vous voulez recevoir des mails pour suivre l'avancement de votre job
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=paul.peytevin@student-cs.fr
+
+## La DGX propose 4 types de partition à choisir: prod10, prod 20, prod 40 ou prod80 . Vous pouvez choisir (sachant que la 80 a besoin d'un fichier un peu différent)
+#SBATCH --partition=prod10
+
+## Choisir le GPU en conséquence de la partition: soit 1g.10gb:[1:10] pour prod10, 2g.20gb:[1:4] pour prod20, 3g.40gb:1 pour prod40 ou A100.80gb:1 pour prod80.
+#SBATCH --gres=gpu:1g.10gb:1
+
+## Je conseil de ne pas toucher à ces paramètres (ils marchent), mais vous pouvez les modifier si vous savez ce que vous faites.
+## For ntasks and cpus: total requested cpus (ntasks * cpus-per-task) must be in [1: 4 * nMIG] with nMIG = nb_1g.10gb | 2 * nb_2g.20gb | 4 * nb_3g.40gb | 8 * nb_A100.80gb
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+
+## Choisir le temps d'exécution maximum de votre job
+#SBATCH --time=24:0:0
+
+## Virtual environment (activer l'environnement virtuel python avant de lancer le script python)
+## Ici, on suppose que l'environnement virtuel est dans le répertoire ~/venv
+source /raid/home/automatants/peytevin_pau/Can-t-Stop/env/bin/activate
+
+## Aller dans le répertoire de travail pour permettre les lien relatifs
+cd /raid/home/automatants/peytevin_pau/Can-t-Stop/cant_stop
+
+## Lancer votre script python
+python train_rl_agent.py
