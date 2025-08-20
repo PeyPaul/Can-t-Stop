@@ -86,7 +86,7 @@ class CantStopGymEnv(gym.Env):
                 self.reward += -10
                 
             self.turn += 1
-            self.reward += -2
+            self.reward += -5
             self.game_state.next_player()
             player = self.game_state.get_current_player()
             # print(f"\n--- Tour {self.turn} : {player.name} ---")
@@ -115,7 +115,7 @@ class CantStopGymEnv(gym.Env):
                 print(f"Reward : {self.reward}")
                 self.render()
                 sys.exit()
-            self.reward += -1
+            self.reward += 0
             self.game_state.next_player()
             player = self.game_state.get_current_player()
             self.play_turn(self.game_state, player, action) # on joue le tour de l'IA random
@@ -124,7 +124,7 @@ class CantStopGymEnv(gym.Env):
                 self.done = True
                 self.reward += -10
             self.turn += 1
-            self.reward += -2
+            self.reward += 0
             self.game_state.next_player()
             player = self.game_state.get_current_player()
             # print(f"\n--- Tour {self.turn} : {player.name} ---")
@@ -243,7 +243,7 @@ class CantStopGymEnv(gym.Env):
         if not self.should_continue_RL(player, action):
             # print(f"{player.name} s'arrête et sécurise ses progrès.")
             for col, val in self.temp_markers.items():
-                self.reward += (val - player.progress[col]) * 0.1
+                self.reward += (val - player.progress[col]) * 1
                 player.progress[col] = val
                 if player.progress[col] >= COL_LENGTHS[col]:
                     game_state.lock_column(col, player)
