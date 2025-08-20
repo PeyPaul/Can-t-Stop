@@ -243,6 +243,7 @@ class CantStopGymEnv(gym.Env):
         if not self.should_continue_RL(player, action):
             # print(f"{player.name} s'arrête et sécurise ses progrès.")
             for col, val in self.temp_markers.items():
+                self.reward += (val - player.progress[col]) * 0.1
                 player.progress[col] = val
                 if player.progress[col] >= COL_LENGTHS[col]:
                     game_state.lock_column(col, player)
