@@ -5,6 +5,11 @@ np.bool = np.bool_ # Cette ligne est très importante
 from game_engine import GameState, COL_LENGTHS, COLUMNS, MAX_TEMP_MARKERS
 import sys
 
+## Monkey patch
+if "numpy._core" not in sys.modules:
+    import numpy
+    sys.modules["numpy._core"] = numpy
+
 class CantStopGymEnv(gym.Env):
     """
     Environnement Gym pour Can't Stop (1 agent RL vs IA simple)
@@ -24,7 +29,7 @@ class CantStopGymEnv(gym.Env):
         self.done = False
         self.temp_markers = {}
         self.reward = 0
-        self.turn = 1
+        self.turn = 0
         self.observations = None
         self.info = None
         self.possible = {}
@@ -68,7 +73,7 @@ class CantStopGymEnv(gym.Env):
             winner = self.game_state.check_winner()
             if winner: 
                 self.done = True
-                self.reward += 40 - self.turn
+                self.reward += 100 - self.turn
                 
             self.game_state.next_player()
             player = self.game_state.get_current_player()
@@ -81,6 +86,7 @@ class CantStopGymEnv(gym.Env):
                 self.reward += -10
                 
             self.turn += 1
+            self.reward += -2
             self.game_state.next_player()
             player = self.game_state.get_current_player()
             # print(f"\n--- Tour {self.turn} : {player.name} ---")
@@ -92,8 +98,23 @@ class CantStopGymEnv(gym.Env):
             self.temp_markers = {}
         self.possible = self.get_possible_actions(pairs, player,self.temp_markers)
 
+        #garde de sécurité pour la boucl infinie
+        max_loop = 50
+        loop = 0
+        
         while not self.possible: # on gere le bust de RL (il ne peut buster que ici)
             # print(f"{player.name} a busté !")
+            
+            loop += 1
+            if loop > max_loop:
+                print("Boucle infinie détectée, arrêt du jeu.")
+                print(f"Progression temporaire : {self.temp_markers}")
+                print(f"Actions possibles : {self.possible}")
+                print(f"Tour : {self.turn}")
+                print(f"Joueur courant : {player.name}")
+                print(f"Reward : {self.reward}")
+                self.render()
+                sys.exit()
             self.reward += -1
             self.game_state.next_player()
             player = self.game_state.get_current_player()
@@ -103,6 +124,7 @@ class CantStopGymEnv(gym.Env):
                 self.done = True
                 self.reward += -10
             self.turn += 1
+            self.reward += -2
             self.game_state.next_player()
             player = self.game_state.get_current_player()
             # print(f"\n--- Tour {self.turn} : {player.name} ---")
@@ -225,7 +247,7 @@ class CantStopGymEnv(gym.Env):
                 if player.progress[col] >= COL_LENGTHS[col]:
                     game_state.lock_column(col, player)
                     if player.name == "RL":
-                        self.reward += 3
+                        self.reward += 5
         return self.temp_markers
     
     def play_turn(self, game_state, player, action): #on peut améliorer cette fonction car l'agent RL ne joue pas ici
