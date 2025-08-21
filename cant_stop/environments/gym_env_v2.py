@@ -63,6 +63,10 @@ class CantStopGymEnv(gym.Env):
 
     def step(self, action): # A FAIRE : IMPLEMENTER LE MASQUE DES ACTIONS
         player = self.game_state.get_current_player()
+        
+        #chasse aux bugs
+        print(f"actions possibles: {self.possible}")
+
         if self.should_continue_RL(self, action):
             # on applique les choix de l'agent RL
             self.temp_markers = self.play_turn_RL(self.game_state, player, action)
@@ -104,6 +108,10 @@ class CantStopGymEnv(gym.Env):
         loop = 0
         
         #chasse au bug
+        print(f"player.progress: {player.progress}")
+        print(f"temp_markers: {self.temp_markers}")
+        print(f"COL_LENGTHS: {COL_LENGTHS}")
+        #print(f"actions possibles: {self.possible}")
         assert all(player.progress[c] <= COL_LENGTHS[c] for c in COLUMNS), "BUG: overflow in player progress"
         assert all(v <= COL_LENGTHS[c] for c, v in self.temp_markers.items()), "BUG: overflow in temp_markers"
 
@@ -232,6 +240,7 @@ class CantStopGymEnv(gym.Env):
                 # Vérification de la limite de marqueurs temporaires un à un
                 elif a != b and ((a in self.temp_markers and self.temp_markers[a] < COL_LENGTHS[a] and len(self.temp_markers) < MAX_TEMP_MARKERS) or (b in self.temp_markers and self.temp_markers[b] < COL_LENGTHS[b] and len(self.temp_markers) < MAX_TEMP_MARKERS)):
                     possible[2*i] = (a, b)
+                    print("ça passe par ici, j'en suis quasiment sûr !!!!!!!! il faudrait inverser les deux dernières conditions pour que tous soit juste, non en vrai il faudrait faire bien plus que cela. On a des problèmes")
             # Si on ne peut pas prendre les deux, on regarde si on peut prendre un seul
             if (a,b) not in possible.values():
                 for val in (a, b):
@@ -303,13 +312,8 @@ class CantStopGymEnv(gym.Env):
                 possible[i+6] = possible[i]
         
         action = int(action) # TEST TEST TEST
-        
-        if action not in possible.keys():
-            # Choisir une action valide par défaut ou lever une exception explicite
-            # print(f"Action {action} non valide, choix possible : {list(possible.keys())}")
-            action = min(possible.keys())  # ou random.choice(list(possible.keys()))
+
         choice = possible[action+0]
-        # print(f"Action choisie par l'agent RL : {choice}")
         return choice
         
     def choose_action_random(self, player, possible, dice, pairs):
