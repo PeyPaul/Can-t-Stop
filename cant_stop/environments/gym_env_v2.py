@@ -49,6 +49,7 @@ class CantStopGymEnv(gym.Env):
             p.progress = {col: 0 for col in COLUMNS}
         self.turn = 0
         self.game_state = GameState(self.players)
+        self.game_state.locked_columns = set()
         
         self.temp_markers = {}
         player = self.game_state.get_current_player()
@@ -102,6 +103,10 @@ class CantStopGymEnv(gym.Env):
         max_loop = 50
         loop = 0
         
+        #chasse au bug
+        assert all(player.progress[c] <= COL_LENGTHS[c] for c in COLUMNS), "BUG: overflow in player progress"
+        assert all(v <= COL_LENGTHS[c] for c, v in self.temp_markers.items()), "BUG: overflow in temp_markers"
+
         while not self.possible: # on gere le bust de RL (il ne peut buster que ici)
             # print(f"{player.name} a busté !")
             
@@ -124,7 +129,7 @@ class CantStopGymEnv(gym.Env):
                 self.done = True
                 self.reward += -10
             self.turn += 1
-            self.reward += 0
+            self.reward += -5
             self.game_state.next_player()
             player = self.game_state.get_current_player()
             # print(f"\n--- Tour {self.turn} : {player.name} ---")
@@ -204,7 +209,11 @@ class CantStopGymEnv(gym.Env):
                 action_mask[i] = False
         return {
             "action_mask": action_mask,
-            "possible": possible
+            "possible": possible,
+            "turn": self.turn,
+            "temp_markers": self.temp_markers,
+            "player": self.game_state.get_current_player().name,
+            "reward": self.reward
         }
     
     def get_possible_actions(self, pairs, player,temp_markers):

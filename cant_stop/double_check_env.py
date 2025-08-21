@@ -20,12 +20,12 @@ if __name__ == "__main__":
         entry_point="environments.gym_env_v2:CantStopGymEnv"
     )
 
-    env = gym.make("CantStop-v0")
+    #env = gym.make("CantStop-v0")
     env = CantStopGymEnv()
     env.reset()
     env = ActionMasker(env, mask_fn)
     model = MaskablePPO("MlpPolicy", env=env, verbose=1)
-    model.learn(total_timesteps=total_timesteps)
+    #model.learn(total_timesteps=total_timesteps)
 
     print("Modèle PPO entraîné.")
 
@@ -34,7 +34,24 @@ if __name__ == "__main__":
     done = False
     
     while not done:
-        action = model.predict(obs, deterministic=True, action_masks=info["action_mask"])[0]
-        obs, reward, done, truncated, info = env.step(action)
+        print(f"--Tour {info['turn']} : {info['player']} ---")
         env.render()
-        print(f"Reward: {reward}")
+        
+        action = model.predict(obs, deterministic=True, action_masks=info["action_mask"])[0]
+        
+        print(f"Action prise: {action}")
+        print(f"Action possible: {info['possible']}")
+        print(f"action masquée: {info['action_mask']}")
+        print(f"Marqueurs temporaires: {info['temp_markers']}")
+        print(f"Reward: {info['reward']}")
+        obs, reward, done, truncated, info = env.step(action)
+        
+        env.render()
+        
+        
+        
+        
+        
+
+
+        

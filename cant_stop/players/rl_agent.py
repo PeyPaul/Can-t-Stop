@@ -33,7 +33,7 @@ class RLAgent:
         self.observations = None
 
 
-    def choose_action(self, possible_actions, dice, pairs, temp_markers, game_state): # AJOUTER L'ELEMENT TEMP_MARKERS
+    def choose_action(self, possible_actions, dice, pairs, temp_markers, game_state):
         observation = self.get_observation(game_state, done=False, temp_markers=temp_markers, pairs=pairs)
         action_masks = self.get_action_mask(game_state, pairs, temp_markers)
 
