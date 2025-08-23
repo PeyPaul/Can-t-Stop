@@ -225,30 +225,30 @@ class CantStopGymEnv(gym.Env):
         }
     
     def get_possible_actions(self, pairs, player,temp_markers):
-        possible = {}
-        for i, (a, b) in enumerate(pairs):
-            if not self.game_state.is_column_locked(a) and not self.game_state.is_column_locked(b):
-                # Cas où on peut prendre deux fois la même colonne
-                if a == b and ((a in self.temp_markers and self.temp_markers[a] < COL_LENGTHS[a]-1) or (a not in self.temp_markers and len(self.temp_markers) < MAX_TEMP_MARKERS and player.progress[a] < COL_LENGTHS[a]-1)):
-                    possible[2*i] = (a, b) 
-                # Si les deux colonnes sont déjà en cours de progression
-                elif a != b and (a in self.temp_markers and self.temp_markers[a] < COL_LENGTHS[a]) and (b in self.temp_markers and self.temp_markers[b] < COL_LENGTHS[b]):
-                    possible[2*i] = (a, b)
-                # Si on a suffisamment de marqueurs temporaires
-                elif a != b and len(self.temp_markers) + 1 < MAX_TEMP_MARKERS:
-                    possible[2*i] = (a, b)
-                # Vérification de la limite de marqueurs temporaires un à un
-                elif a != b and ((a in self.temp_markers and self.temp_markers[a] < COL_LENGTHS[a] and len(self.temp_markers) < MAX_TEMP_MARKERS) or (b in self.temp_markers and self.temp_markers[b] < COL_LENGTHS[b] and len(self.temp_markers) < MAX_TEMP_MARKERS)):
-                    possible[2*i] = (a, b)
-                    print("ça passe par ici, j'en suis quasiment sûr !!!!!!!! il faudrait inverser les deux dernières conditions pour que tous soit juste, non en vrai il faudrait faire bien plus que cela. On a des problèmes")
-            # Si on ne peut pas prendre les deux, on regarde si on peut prendre un seul
-            if (a,b) not in possible.values():
-                for val in (a, b):
-                    if not self.game_state.is_column_locked(val) and ((val in self.temp_markers and self.temp_markers[val] < COL_LENGTHS[val]) or (val not in self.temp_markers and len(self.temp_markers) < MAX_TEMP_MARKERS)):
-                        if val == a:
-                            possible[2*i] = (val,)
-                        else:
-                            possible[2*i + 1] = (val,)
+        # possible = {}
+        # for i, (a, b) in enumerate(pairs):
+        #     if not self.game_state.is_column_locked(a) and not self.game_state.is_column_locked(b):
+        #         # Cas où on peut prendre deux fois la même colonne
+        #         if a == b and ((a in self.temp_markers and self.temp_markers[a] < COL_LENGTHS[a]-1) or (a not in self.temp_markers and len(self.temp_markers) < MAX_TEMP_MARKERS and player.progress[a] < COL_LENGTHS[a]-1)):
+        #             possible[2*i] = (a, b) 
+        #         # Si les deux colonnes sont déjà en cours de progression
+        #         elif a != b and (a in self.temp_markers and self.temp_markers[a] < COL_LENGTHS[a]) and (b in self.temp_markers and self.temp_markers[b] < COL_LENGTHS[b]):
+        #             possible[2*i] = (a, b)
+        #         # Si on a suffisamment de marqueurs temporaires
+        #         elif a != b and len(self.temp_markers) + 1 < MAX_TEMP_MARKERS:
+        #             possible[2*i] = (a, b)
+        #         # Vérification de la limite de marqueurs temporaires un à un
+        #         elif a != b and ((a in self.temp_markers and self.temp_markers[a] < COL_LENGTHS[a] and len(self.temp_markers) < MAX_TEMP_MARKERS) or (b in self.temp_markers and self.temp_markers[b] < COL_LENGTHS[b] and len(self.temp_markers) < MAX_TEMP_MARKERS)):
+        #             possible[2*i] = (a, b)
+        #             print("ça passe par ici, j'en suis quasiment sûr !!!!!!!! il faudrait inverser les deux dernières conditions pour que tous soit juste, non en vrai il faudrait faire bien plus que cela. On a des problèmes")
+        #     # Si on ne peut pas prendre les deux, on regarde si on peut prendre un seul
+        #     if (a,b) not in possible.values():
+        #         for val in (a, b):
+        #             if not self.game_state.is_column_locked(val) and ((val in self.temp_markers and self.temp_markers[val] < COL_LENGTHS[val]) or (val not in self.temp_markers and len(self.temp_markers) < MAX_TEMP_MARKERS)):
+        #                 if val == a:
+        #                     possible[2*i] = (val,)
+        #                 else:
+        #                     possible[2*i + 1] = (val,)
                             
                             
         possible = {}
