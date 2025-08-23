@@ -249,6 +249,48 @@ class CantStopGymEnv(gym.Env):
                             possible[2*i] = (val,)
                         else:
                             possible[2*i + 1] = (val,)
+                            
+                            
+        possible = {}
+        for i, (a,b) in enumerate(pairs):
+            if not self.game_state.is_column_locked(a) and not self.game_state.is_column_locked(b):
+                if a == b:
+                    if a in self.temp_markers:
+                        if self.temp_markers[a] < COL_LENGTHS[a]-1:
+                            possible[2*i] =(a,b)
+                    else:
+                        if len(self.temp_markers) < MAX_TEMP_MARKERS and player.progress[a] < COL_LENGTHS[a]-1:
+                            possible[2*i] =(a,b)
+                else:
+                    if a in self.temp_markers and b in self.temp_markers:
+                        if self.temp_markers[a] < COL_LENGTHS[a] and self.temp_markers[b] < COL_LENGTHS[b]:
+                            possible[2*i] =(a,b)
+                    elif a not in self.temp_markers and b not in self.temp_markers:
+                        if len(self.temp_markers) + 1 <MAX_TEMP_MARKERS:
+                            possible[2*i] =(a,b)
+                    elif a in self.temp_markers and b not in self.temp_markers:
+                        if self.temp_markers[a] < COL_LENGTHS[a] and len(self.temp_markers) < MAX_TEMP_MARKERS:
+                            possible[2*i] =(a,b)
+                    else:
+                        if self.temp_markers[b] < COL_LENGTHS[b] and len(self.temp_markers) < MAX_TEMP_MARKERS:
+                            possible[2*i] =(a,b)
+                            
+            if (a,b) not in possible.values():
+                for val in (a, b):
+                    if not self.game_state.is_column_locked(val):
+                        if val in self.temp_markers:
+                            if self.temp_markers[val] < COL_LENGTHS[val]:
+                                if val == a:
+                                    possible[2*i] = (val,)
+                                else:
+                                    possible[2*i + 1] = (val,)
+                        else:
+                            if len(self.temp_markers) < MAX_TEMP_MARKERS:
+                                if val == a:
+                                    possible[2*i] = (val,)
+                                else:
+                                    possible[2*i + 1] = (val,)
+
         return possible
 
     def play_turn_RL(self, game_state, player, action):
