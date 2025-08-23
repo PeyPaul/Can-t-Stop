@@ -65,7 +65,7 @@ class CantStopGymEnv(gym.Env):
         player = self.game_state.get_current_player()
         
         #chasse aux bugs
-        print(f"actions possibles: {self.possible}")
+        # print(f"actions possibles: {self.possible}")
 
         if self.should_continue_RL(self, action):
             # on applique les choix de l'agent RL
@@ -108,9 +108,9 @@ class CantStopGymEnv(gym.Env):
         loop = 0
         
         #chasse au bug
-        print(f"player.progress: {player.progress}")
-        print(f"temp_markers: {self.temp_markers}")
-        print(f"COL_LENGTHS: {COL_LENGTHS}")
+        # print(f"player.progress: {player.progress}")
+        # print(f"temp_markers: {self.temp_markers}")
+        # print(f"COL_LENGTHS: {COL_LENGTHS}")
         #print(f"actions possibles: {self.possible}")
         assert all(player.progress[c] <= COL_LENGTHS[c] for c in COLUMNS), "BUG: overflow in player progress"
         assert all(v <= COL_LENGTHS[c] for c, v in self.temp_markers.items()), "BUG: overflow in temp_markers"
