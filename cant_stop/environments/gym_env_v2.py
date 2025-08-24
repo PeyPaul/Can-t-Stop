@@ -61,7 +61,8 @@ class CantStopGymEnv(gym.Env):
         self.info = self.get_information(self.possible)
         return self.observations, self.info
 
-    def step(self, action): # A FAIRE : IMPLEMENTER LE MASQUE DES ACTIONS
+    def step(self, action): 
+        self.reward = 0
         player = self.game_state.get_current_player()
         
         #chasse aux bugs
