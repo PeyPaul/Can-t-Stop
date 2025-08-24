@@ -41,8 +41,8 @@ class EpisodeTurnMaxCallback(BaseCallback):
             if done and len(self.episode_turns) > 0:
                 max_turn = np.max(self.episode_turns)
                 self.logger.record("custom/max_turn_per_episode", max_turn)
-                if self.verbose > 0:
-                    print(f"[EpisodeTurnMaxCallback] Max turn for episode: {max_turn}")
+                #if self.verbose > 0:
+                    # print(f"[EpisodeTurnMaxCallback] Max turn for episode: {max_turn}")
                 self.episode_turns = []  # reset pour le prochain épisode
 
         return True
