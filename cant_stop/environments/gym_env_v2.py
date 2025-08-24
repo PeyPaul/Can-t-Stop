@@ -70,6 +70,7 @@ class CantStopGymEnv(gym.Env):
         if self.should_continue_RL(self, action):
             # on applique les choix de l'agent RL
             self.temp_markers = self.play_turn_RL(self.game_state, player, action)
+            self.reward += 1
             
         else:
             self.temp_markers = self.play_turn_RL(self.game_state, player, action)
@@ -91,7 +92,7 @@ class CantStopGymEnv(gym.Env):
                 self.reward += -10
                 
             self.turn += 1
-            self.reward += -5
+            self.reward += 0
             self.game_state.next_player()
             player = self.game_state.get_current_player()
             # print(f"\n--- Tour {self.turn} : {player.name} ---")
@@ -137,7 +138,7 @@ class CantStopGymEnv(gym.Env):
                 self.done = True
                 self.reward += -10
             self.turn += 1
-            self.reward += -5
+            self.reward += 0
             self.game_state.next_player()
             player = self.game_state.get_current_player()
             # print(f"\n--- Tour {self.turn} : {player.name} ---")
