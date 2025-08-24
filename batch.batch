@@ -1,8 +1,8 @@
 #!/bin/bash
 #
 #SBATCH --job-name=Cant-stop                                    ## Choisir le nom du job
-#SBATCH --output=/raid/home/automatants/peytevin_pau/Can-t-Stop/out2.out               ## Choisir le nom du fichier de sortie
-#SBATCH --error=/raid/home/automatants/peytevin_pau/Can-t-Stop/out2.out                ## Choisir le nom du fichier d'erreur (mettre le même permet d'obtenir la sortie python dans un seul fichier)
+#SBATCH --output=/raid/home/automatants/peytevin_pau/Can-t-Stop/out3.out               ## Choisir le nom du fichier de sortie
+#SBATCH --error=/raid/home/automatants/peytevin_pau/Can-t-Stop/out3.out                ## Choisir le nom du fichier d'erreur (mettre le même permet d'obtenir la sortie python dans un seul fichier)
 
 ## Si vous voulez recevoir des mails pour suivre l'avancement de votre job
 #SBATCH --mail-type=ALL
