@@ -3,7 +3,7 @@ from gymnasium import spaces
 from stable_baselines3 import PPO
 from sb3_contrib import MaskablePPO
 from sb3_contrib.common.wrappers import ActionMasker
-from environments.gym_env_v2 import CantStopGymEnv
+from environments.gym_env_v3 import CantStopGymEnv
 import sys
 import os
 import time
@@ -17,7 +17,7 @@ if __name__ == "__main__":
     # Enregistrement de l'environnement custom
     gym.envs.registration.register(
         id="CantStop-v0",
-        entry_point="environments.gym_env_v2:CantStopGymEnv"
+        entry_point="environments.gym_env_v3:CantStopGymEnv"
     )
 
     #env = gym.make("CantStop-v0")
@@ -43,8 +43,8 @@ if __name__ == "__main__":
         print(f"Action possible: {info['possible']}")
         print(f"action masquée: {info['action_mask']}")
         print(f"Marqueurs temporaires: {info['temp_markers']}")
-        print(f"Reward: {info['reward']}")
         obs, reward, done, truncated, info = env.step(action)
+        print(f"Reward: {info['reward']}")
         
         env.render()
         

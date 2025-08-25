@@ -54,7 +54,7 @@ from gymnasium import spaces
 from stable_baselines3 import PPO
 from sb3_contrib import MaskablePPO
 from sb3_contrib.common.wrappers import ActionMasker
-from environments.gym_env_v2 import CantStopGymEnv
+from environments.gym_env_v3 import CantStopGymEnv
 import sys
 import os
 import time
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     # Enregistrement de l'environnement custom
     gym.envs.registration.register(
         id="CantStop-v0",
-        entry_point="environments.gym_env_v2:CantStopGymEnv"
+        entry_point="environments.gym_env_v3:CantStopGymEnv"
     )
 
     #env = gym.make("CantStop-v0")
@@ -85,7 +85,7 @@ if __name__ == "__main__":
     env = ActionMasker(env, mask_fn)
     model = MaskablePPO("MlpPolicy", env=env, verbose=1, tensorboard_log=log_dir)
     callback = [WatchdogCallback(max_silence_sec=1200), EpisodeTurnMaxCallback(verbose=1)]
-    for i in range(1, 20):
+    for i in range(1, 10):
         model.learn(total_timesteps=total_timesteps, reset_num_timesteps=False, tb_log_name="ppo_cant_stop", callback=callback, progress_bar=True)
         model.save(os.path.join(model_dir, f"ppo_cant_stop_{total_timesteps * i}"))
         print("Modèle PPO entraîné et sauvegardé.")
