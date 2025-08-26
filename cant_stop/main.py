@@ -6,6 +6,7 @@ from cant_stop.game_engine import GameState, COL_LENGTHS, COLUMNS, MAX_TEMP_MARK
 from cant_stop.players.human_player import HumanPlayer
 from cant_stop.players.random_ai import RandomAI
 from cant_stop.players.rl_agent import RLAgent
+from cant_stop.players.rl_agent_v2 import RLAgent_v2
 
 def display_board(players, board, locked_columns):
     print("\nPlateau de jeu :")
@@ -78,7 +79,7 @@ def play_turn(game_state, player):
 
 def main():
     players = [
-        RLAgent("Joueur 1"),
+        RLAgent_v2("Joueur 1"),
         RandomAI("Joueur 2")
     ]
     for p in players:
