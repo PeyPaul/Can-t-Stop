@@ -127,7 +127,7 @@ class CantStopGymEnv(gym.Env):
                 print(f"Reward : {self.reward}")
                 self.render()
                 sys.exit()
-            self.reward = - self.reward
+            self.reward = - (self.reward**(3/2))
             # print(f"RL a busté, reward : {self.reward}")
             self.turn += 1
             self.reward += 0
@@ -273,7 +273,7 @@ class CantStopGymEnv(gym.Env):
                 if player.progress[col] >= COL_LENGTHS[col]:
                     game_state.lock_column(col, player)
                     self.reward += 5
-                    #print("RL bloque une colonne, reward +5")
+                    # print("RL bloque une colonne, reward +5")
         return self.temp_markers
 
     def choose_action_RL(self, player, possible, action):
