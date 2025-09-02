@@ -127,7 +127,9 @@ class CantStopGymEnv(gym.Env):
                 print(f"Reward : {self.reward}")
                 self.render()
                 sys.exit()
-            self.reward = int(- (self.reward**(3/2)))
+            if self.reward < 0:
+                self.reward = 0
+            self.reward = int(- (self.reward**(7/4)))
             
             # print(f"RL a busté, reward : {self.reward}")
             self.turn += 1

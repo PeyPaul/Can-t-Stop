@@ -11,6 +11,6 @@ class RLAgent:
         # L'agent RL ne choisit pas ici, c'est l'environnement Gym qui contrôle
         return possible_actions[0]
 
-    def should_continue(self):
+    def should_continue(self, temp_markers=None, game_state=None):
         # L'agent RL ne décide pas ici, c'est l'environnement Gym qui contrôle
         return False

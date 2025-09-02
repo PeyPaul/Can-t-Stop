@@ -43,9 +43,9 @@ class RLAgent:
         choice = possible[int(self.action)]
         return choice
 
-    def should_continue(self):
-        return self.action < 6 
-    
+    def should_continue(self, temp_markers=None, game_state=None):
+        return self.action < 6
+
     def get_observation(self, gamestate, done=False, temp_markers={}, pairs=None): #peut être adapter les variables
         possible = self.get_possible_actions(gamestate, pairs, gamestate.get_current_player(), temp_markers)
 

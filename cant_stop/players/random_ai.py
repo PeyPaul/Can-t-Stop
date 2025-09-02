@@ -12,5 +12,5 @@ class RandomAI:
         random.shuffle(possible_actions)
         return possible_actions[0]
 
-    def should_continue(self):
-        return random.random() < 0.75 
+    def should_continue(self, temp_markers=None, game_state=None):
+        return random.random() < 0.75

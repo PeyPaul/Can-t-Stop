@@ -23,7 +23,7 @@ class HumanPlayer:
                 pass
             print("Entrée invalide. Réessaie.")
 
-    def should_continue(self):
+    def should_continue(self, temp_markers=None, game_state=None):
         while True:
             choice = input("Souhaites-tu continuer ? (o/n) : ").lower()
             if choice in ["o", "n"]:

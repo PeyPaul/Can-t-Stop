@@ -24,3 +24,32 @@ Cette configuration est en théorie impossible
 
 
 Je trouve que l'agent RL n'est toujours pas bon, peut être qu'il va falloir penser à modifier les informations à donner à l'IA pour les rendre plus simples
+
+
+
+
+Peut être serait iltemps de créer un gym_env _v3 avec une obsvervation adaptée (moins de bruits) et peut être aussi laisser l'agent RL s'entrainer tout seul
+
+nouvelle idée de reward : tant que RL décide de continuer : reward = nombre d'avancée dans les marqueurs temporaires. Mais si il buste, son reward est égale à l'opposé du carré de cette somme.
+ça encourage RL a continuer et prendre des risques mais à faire attention à ne pas bust
+J'ai implémenter cette dernière idée. Peut être qqche de trop pénalisant : en cas de bust la pénalité est le carré du reward que RL aurait dû avoir, donc pas le dernier reward mais le reward hypothetique. Je ne sais pas si c'est réellement un problème
+
+
+
+
+
+
+
+
+
+
+[k=0.5] → 964/1000 victoires (96.40%)
+[k=0.7] → 971/1000 victoires (97.10%)
+[k=0.8] → 973/1000 victoires (97.30%)
+[k=0.85] → 977/1000 victoires (97.70%)
+[k=0.9] → 974/1000 victoires (97.40%)
+[k=0.95] → 982/1000 victoires (98.20%)
+[k=1] → 978/1000 victoires (97.80%)
+[k=1.1] → 979/1000 victoires (97.90%)
+[k=1.2] → 978/1000 victoires (97.80%)
+[k=1.5] → 974/1000 victoires (97.40%)
