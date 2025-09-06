@@ -1,5 +1,3 @@
-# heuristic_ai.py
-# IA heuristique pour Can't Stop
 import random
 from collections import Counter
 from itertools import product
@@ -14,7 +12,7 @@ class HeuristicAI:
     def __init__(
         self,
         name,
-        k_risk=3.0,          # Paramètre K pour stop/continue
+        k_risk=1.0,          # Paramètre K pour stop/continue
         alpha_future=0.5,    # Poids du p_continue_next dans le score d'action
         eps_explore=0.05     # Petite exploration pour éviter l'ultra-déterminisme
     ):

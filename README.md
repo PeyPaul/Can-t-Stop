@@ -1,55 +1,104 @@
-# Can-t-Stop
+# Can't Stop AI Project  
 
+## 📌 Overview  
+This project implements an intelligent agent that plays the board game **"Can't Stop"**.  
+The goal of the project is to explore different approaches to building an AI player, ranging from **reinforcement learning** to **probabilistic heuristics**, and to compare their performance.  
 
-On a bien avancé. Maintenant on a quelquechose qui fonctionne : on peut entrainer l'agent et jouer contre lui.
-Mais problème, il est nul donc on va essayer de modifier les reward pour voir si on arrive à quelquechose de mieux
+The project provides:  
+- A **complete game engine** for *Can't Stop* (dice rolling, turn management, column locking).  
+- A **terminal interface** that allows:  
+  - Human vs Human  
+  - Human vs AI  
+  - AI vs AI matches  
+- Multiple types of AI players:  
+  - **RandomAI** – a purely random agent.  
+  - **RLAgent** – a reinforcement learning agent trained using PPO and Gym.  
+  - **HeuristicAI** – a probability-based agent that significantly outperforms RLAgent.  
 
-Les pauses dans l'entrainement sont un phénomène étrange. Ils viennent tous de la boucle dans step, il doit y avoir un problème avec les variables.
-Aussi le plateau de jeux est complétement remplis lors de ses blocage, ce qui est rès étrange, je ne sais pas comment cela peut arriver
+This repository aims to serve as both a learning project and a practical demonstration of applying AI techniques to a real game environment.
 
-Col  2 [Lm,Lm,m,] (Verrouillée)
-Col  3 [Lm,Lm,m,m,m,] (Verrouillée)
-Col  4 [Lm,Lm,Lm,Lm,Lm,Lm,m,] (Verrouillée)
-Col  5 [Lm,Lm,Lm,Lm,Lm,Lm,m,m,m,] (Verrouillée)
-Col  6 [Lm,Lm,Lm,Lm,Lm,Lm,Lm,Lm,Lm,Lm,L,] (Verrouillée)
-Col  7 [Lm,Lm,Lm,Lm,Lm,Lm,Lm,Lm,Lm,Lm,m,m,m,] (Verrouillée)
-Col  8 [Lm,Lm,Lm,Lm,Lm,Lm,Lm,m,m,m,m,] (Verrouillée)
-Col  9 [Lm,Lm,Lm,Lm,m,m,m,m,m,] (Verrouillée)
-Col 10 [m,m,m,m,m,m,m,] (Verrouillée)
-Col 11 [Lm,Lm,m,m,m,] (Verrouillée)
-Col 12 [m,m,m,] (Verrouillée)
+---
 
-Cette configuration est en théorie impossible
+## 🎲 Game Rules (Quick Recap)  
+- The game is played with **4 dice**.  
+- At each turn, the player rolls the dice, selects **two pairs**, and advances temporary markers on the corresponding columns (based on the sums of the pairs).  
+- A player may have at most **3 active temporary markers** at a time.  
+- If no legal combination can be chosen, the player **busts** and loses all temporary progress for this turn.  
+- The player can **stop at any time** to secure progress.  
+- Once a player **completes a column**, it is locked and no other player can use it.  
+- The first player to **lock 3 columns** wins.  
 
+---
 
+## 🛠️ Technical Implementation  
 
-Je trouve que l'agent RL n'est toujours pas bon, peut être qu'il va falloir penser à modifier les informations à donner à l'IA pour les rendre plus simples
+### 1. Game Engine  
+- Fully implemented in Python, object-oriented design.  
+- Handles dice rolling, column lengths, player progression, column locking, turn rotation, and win conditions.  
 
+### 2. Gym Environment  
+- A custom **OpenAI Gym environment** was created for training reinforcement learning agents.  
+- **Action masking** is implemented to prevent the RL agent from selecting invalid actions.  
+- Observations include:  
+  - Player and opponent progress (per column)  
+  - Locked columns  
+  - Number of completed columns  
+  - Available actions (encoded)  
 
+### 3. Reinforcement Learning Approach  
+- **PPO (Proximal Policy Optimization)** was used with Stable-Baselines3.  
+- Reward shaping included:  
+  - Positive reward for completing columns and winning the game.  
+  - Negative reward for busting or losing.  
+  - Small incentives for finishing the game quickly.  
+- Despite experimentation with reward tuning and observation design, RL agents struggled to consistently outperform `RandomAI`.  
 
+### 4. Heuristic Approach  
+- The final solution uses a **probability-based heuristic agent**:  
+  - Calculates the **probability of busting** given the current dice roll and temporary markers.  
+  - Decides whether to continue or stop based on risk thresholds.  
+  - Prioritizes columns that maximize the chance of completing 3 columns efficiently.  
+- This agent is **much stronger** than the RL approach and consistently beats `RandomAI`.  
 
-Peut être serait iltemps de créer un gym_env _v3 avec une obsvervation adaptée (moins de bruits) et peut être aussi laisser l'agent RL s'entrainer tout seul
+---
 
-nouvelle idée de reward : tant que RL décide de continuer : reward = nombre d'avancée dans les marqueurs temporaires. Mais si il buste, son reward est égale à l'opposé du carré de cette somme.
-ça encourage RL a continuer et prendre des risques mais à faire attention à ne pas bust
-J'ai implémenter cette dernière idée. Peut être qqche de trop pénalisant : en cas de bust la pénalité est le carré du reward que RL aurait dû avoir, donc pas le dernier reward mais le reward hypothetique. Je ne sais pas si c'est réellement un problème
+## 📊 Results  
 
+| Agent           | Win Rate vs RandomAI | Avg. Game Length | Notes |
+|-----------------|--------------------|----------------|------|
+| RandomAI        | ~50%               | ~40 turns      | Baseline |
+| RLAgent (PPO)   | ~52–55%            | Similar to RandomAI | Small improvement despite long training |
+| HeuristicAI     | **>95%**           | Shorter games  | Plays much more aggressively and efficiently. Can easily beat human players |
 
+Key takeaway: **The heuristic agent is both faster and more effective than the RL approach.**
 
+---
 
+## 🚀 How to Run  
 
+### Install Dependencies  
+```bash
+pip install -r requirements.txt
+```
 
+You can modify the players and their characteristics directly in `main.py` at line 103. THen to launch the game : 
 
+```bash
+python cant_stop/main.py
+```
+---
 
+## 🔮 Future Work  
 
+- Improve heuristic strategy with **dynamic risk thresholds** (adjusting risk-taking based on opponent’s progress).
+- Hybrid approach: Use RL to fine-tune parameters of the heuristic policy.
+- Implement a web-based interface to visualize matches more intuitively.
 
-[k=0.5] → 964/1000 victoires (96.40%)
-[k=0.7] → 971/1000 victoires (97.10%)
-[k=0.8] → 973/1000 victoires (97.30%)
-[k=0.85] → 977/1000 victoires (97.70%)
-[k=0.9] → 974/1000 victoires (97.40%)
-[k=0.95] → 982/1000 victoires (98.20%)
-[k=1] → 978/1000 victoires (97.80%)
-[k=1.1] → 979/1000 victoires (97.90%)
-[k=1.2] → 978/1000 victoires (97.80%)
-[k=1.5] → 974/1000 victoires (97.40%)
+---
+
+## 💡 Key Learnings  
+
+- **Action masking** is crucial for RL in combinatorial games like Can't Stop.
+- Reward shaping is challenging: agents can exploit unintended behaviors.
+- In this case, a **well-designed heuristic** outperforms reinforcement learning, showing that domain knowledge can beat brute-force learning when state/action space is complex but manageable.
+
