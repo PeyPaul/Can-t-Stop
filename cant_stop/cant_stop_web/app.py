@@ -5,84 +5,135 @@ from threading import Lock
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 
-# Import your game engine and players here. Adjust names if different.
-import game_engine
-from players.human_player import HumanPlayer
-from players.random_ai import RandomAI
-from players.heuristic_ai import HeuristicAI
+# import sys
+# import os
 
-app = Flask(__name__, static_folder='static', template_folder='templates')
+# import sys, os
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+
+# print("sys.path (PYTHONPATH):")
+# for p in sys.path:
+#     print("  ", p)
+
+# print("\nContenu du dossier courant :", os.getcwd())
+# for f in os.listdir(os.getcwd()):
+#     print("  ", f)
+
+# # Pour voir le contenu du dossier cant_stop (si accessible)
+# cant_stop_path = os.path.join(os.getcwd(), "cant_stop")
+# if os.path.isdir(cant_stop_path):
+#     print("\nContenu du dossier cant_stop :")
+#     for f in os.listdir(cant_stop_path):
+#         print("  ", f)
+
+# Adjust import path if your package name/folder is different.
+# I used `cant_stop` because your posted files used that in main.py.
+from cant_stop.game_engine import GameState, COLUMNS, COL_LENGTHS, MAX_TEMP_MARKERS
+from cant_stop.players.random_ai import RandomAI
+from cant_stop.players.heuristic_ai import HeuristicAI
+# don't import your console HumanPlayer (it blocks for input). We'll use a tiny web-friendly human wrapper.
+
+app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
 
-# In-memory store of running games (good for development). Use Redis or DB in production.
+# In-memory games store for development
 games = {}
 games_lock = Lock()
 
+class WebHuman:
+    """Lightweight human player object for the web UI.
+    It mirrors attributes your AIs expect (progress, completed, name) but does not prompt.
+    """
+    def __init__(self, name='You'):
+        self.name = name
+        self.progress = {col: 0 for col in COLUMNS}
+        self.completed = set()
+        self.is_human = True
+
+    # No choose_action() — human actions come via HTTP calls
+    def should_continue(self, *args, **kwargs):
+        # not used server-side for human, frontend decides and calls /stop
+        return False
+
+def init_player_for_web(kind, name):
+    """Factory: kind in {'human','heuristic','random','rl' (not provided here)}"""
+    if kind == 'human':
+        return WebHuman(name)
+    if kind == 'random':
+        p = RandomAI(name)
+    else:
+        # default heuristic
+        p = HeuristicAI(name)
+    # Ensure AI/player objects have required attributes (progress/completed)
+    if not hasattr(p, 'progress'):
+        p.progress = {col: 0 for col in COLUMNS}
+    if not hasattr(p, 'completed'):
+        p.completed = set()
+    # mark non-human
+    if not hasattr(p, 'is_human'):
+        p.is_human = False
+    return p
+
 class GameInstance:
-    """Wraps a game engine instance with a lock and a last-active timestamp."""
-    def __init__(self, engine):
+    """Wrap a GameState with a lock + per-turn context"""
+    def __init__(self, engine: GameState):
         self.engine = engine
         self.lock = Lock()
         self.last_active = time.time()
-        
-    def serialize(self):
-        """Return a JSON-serializable representation of the engine's state.
-        Tries several common method names and falls back to a minimal manual structure.
-        """
-        e = self.engine
-        # Preferred: use an explicit serializer on your game engine
-        if hasattr(e, 'to_dict'):
-            return e.to_dict()
-        if hasattr(e, 'get_state'):
-            return e.get_state()
-
-        # Try to build minimal useful state for the UI — adapt to your engine's fields
-        state = {
-        'players': [],
-        'current_player_index': getattr(e, 'current_player_index', None),
-        'game_over': getattr(e, 'game_over', False),
+        # turn context used during the current player's turn (temp markers, dice, etc.)
+        # Reset at the start of each player's turn.
+        self.turn_context = {
+            'temp_markers': {},
+            'dice': None,
+            'rolls_count': 0,
+            'busted': False,
+            'in_turn': False,   # true while human/AI turn underway
         }
 
-        players = getattr(e, 'players', None)
-        if players:
-            for p in players:
-                st = {
-                'name': getattr(p, 'name', str(p)),
-                'score': getattr(p, 'score', None),
-                'is_human': getattr(p, 'is_human', False)
-                }
-                state['players'].append(st)
+    def start_new_turn_context(self):
+        self.turn_context = {
+            'temp_markers': {},
+            'dice': None,
+            'rolls_count': 0,
+            'busted': False,
+            'in_turn': True,
+        }
 
-        # Board representation: try common names
-        state['board'] = getattr(e, 'board', getattr(e, 'columns', None))
-        state['dice'] = getattr(e, 'dice', None)
-        # available actions: try engine-provided method
-        if hasattr(e, 'available_actions'):
-            try:
-                state['available_actions'] = e.available_actions()
-            except Exception:
-                state['available_actions'] = []
-        else:
-            state['available_actions'] = []
-        return state
-    
-    
+    def clear_turn_context(self):
+        self.turn_context = {
+            'temp_markers': {},
+            'dice': None,
+            'rolls_count': 0,
+            'busted': False,
+            'in_turn': False,
+        }
+
+    def serialize(self):
+        """Return a JSON-serializable view combining GameState.to_dict and turn_context"""
+        gs_dict = self.engine.to_dict(temp_markers=self.turn_context['temp_markers'],
+                                      dice=self.turn_context['dice'])
+        gs_dict['turn_context'] = {
+            'temp_markers': dict(self.turn_context['temp_markers']),
+            'dice': list(self.turn_context['dice']) if self.turn_context['dice'] else None,
+            'rolls_count': self.turn_context['rolls_count'],
+            'busted': self.turn_context['busted'],
+            'in_turn': self.turn_context['in_turn'],
+        }
+        return gs_dict
+
 def create_game(opponent='heuristic'):
-    """Create a new game instance using your engine and player classes. Adapt as needed."""
-    # Create players: first player = human
-    human = HumanPlayer(name='You')
-    if opponent == 'random':
-        ai = RandomAI(name='Random AI')
-    elif opponent == 'rl':
-        # if you have RL agent class
-        from players.rl_agent import RLAgent
-        ai = RLAgent(name='RL Agent')
-    else:
-        ai = HeuristicAI(name='Heuristic AI')
+    # First player = human; second = chosen AI (or another human if you want)
+    p1 = init_player_for_web('human', 'You')
+    p2 = init_player_for_web(opponent, 'AI' if opponent != 'human' else 'Player 2')
 
-    # Construct your game object. Replace `Game` with whatever your engine uses.
-    engine = game_engine.Game([human, ai])
-    return GameInstance(engine)
+    engine = GameState([p1, p2])
+    gi = GameInstance(engine)
+    # initial turn context: ready for first player's turn
+    gi.start_new_turn_context()
+    return gi
+
+# --- HTTP endpoints ---
 
 @app.route('/')
 def index():
@@ -92,14 +143,11 @@ def index():
 def api_new_game():
     data = request.get_json() or {}
     opponent = data.get('opponent', 'heuristic')
-    gi = create_game(opponent)
-
-    game_id = str(uuid.uuid4())
     with games_lock:
+        gi = create_game(opponent)
+        game_id = str(uuid.uuid4())
         games[game_id] = gi
-
     return jsonify({'game_id': game_id, 'state': gi.serialize()})
-
 
 @app.route('/api/game/<game_id>/state', methods=['GET'])
 def api_state(game_id):
@@ -109,103 +157,196 @@ def api_state(game_id):
     with gi.lock:
         gi.last_active = time.time()
         return jsonify(gi.serialize())
-    
-    
-@app.route('/api/game/<game_id>/actions', methods=['GET'])
-def api_actions(game_id):
+
+@app.route('/api/game/<game_id>/roll', methods=['POST'])
+def api_roll(game_id):
+    """Roll dice for the current player. Returns resulting state.
+    For human: used by frontend when player clicks 'Roll'.
+    For AI: server runs AI turns centrally (see run_ai_turns) so frontend generally doesn't call this for AI.
+    """
     gi = games.get(game_id)
     if not gi:
         return jsonify({'error': 'game not found'}), 404
+
     with gi.lock:
-        e = gi.engine
-        if hasattr(e, 'available_actions'):
-            actions = e.available_actions()
-        else:
-            # try to provide a meaningful fallback
-            actions = []
-        return jsonify({'actions': actions})
-    
-def run_ai_turns(gi):
-    """Run AI moves synchronously until the current player is human or game over.
-    This keeps the server simple: after a human action we call this and return the updated state.
-    For long-running AIs, push to background workers (Celery) or use sockets.
-    """
-    engine = gi.engine
-    while True:
-        # Detect current player object using common names
-        cur = None
-        if hasattr(engine, 'current_player'):
-            cur = engine.current_player
-        elif hasattr(engine, 'current_player_index') and hasattr(engine, 'players'):
-            idx = engine.current_player_index
-            if 0 <= idx < len(engine.players):
-                cur = engine.players[idx]
+        engine = gi.engine
+        player = engine.get_current_player()
 
-        if cur is None:
-            break
+        # If new turn (or previous turn_context not active), start a fresh context
+        if not gi.turn_context['in_turn'] or gi.turn_context['dice'] is None:
+            gi.start_new_turn_context()
 
-        # Decide if this player is human
-        is_human = getattr(cur, 'is_human', False) or getattr(cur, 'player_type', None) == 'human'
-        if is_human:
-            break
+        # Only allow explicit roll for humans. For AIs we'll call run_ai_turns().
+        if getattr(player, 'is_human', False) is not True:
+            return jsonify({'error': 'Not human turn; call /run_ai or poll state instead.'}), 400
 
-        # Ask AI for action(s). Adapt according to your AI API
-        if hasattr(cur, 'act'):
-            ai_choice = cur.act(engine)
-        elif hasattr(cur, 'choose_action'):
-            ai_choice = cur.choose_action(engine)
-        elif hasattr(cur, 'make_move'):
-            ai_choice = cur.make_move(engine)
-        else:
-            raise RuntimeError('AI player does not expose an act/choose_action/make_move method')
+        dice = engine.roll_dice()
+        gi.turn_context['dice'] = dice
+        gi.turn_context['rolls_count'] += 1
 
-        if ai_choice is None:
-            break
-        if not isinstance(ai_choice, list):
-            ai_choice = [ai_choice]
+        pairs = engine.get_pairs(dice)
+        possible = engine.available_actions(pairs, gi.turn_context['temp_markers'], player)
 
-        for a in ai_choice:
-            if hasattr(engine, 'apply_action'):
-                engine.apply_action(a)
-            elif hasattr(engine, 'step'):
-                engine.step(a)
-            else:
-                raise RuntimeError('Game engine must expose apply_action or step to accept moves')
+        if not possible:
+            # busted
+            gi.turn_context['busted'] = True
+            gi.turn_context['in_turn'] = False
+            # human busts -> discard temp_markers and move to next player
+            gi.clear_turn_context()
+            engine.next_player()
+            # After the bust, if next player is AI, run AI turns synchronously
+            run_ai_turns(gi)
+            gi.last_active = time.time()
+            return jsonify({'state': gi.serialize(), 'message': 'bust'})
 
-        # loop: if the AI still has the turn (or next is another AI), continue
-        if getattr(engine, 'game_over', False):
-            break
-        
-        
+        # else return available actions for frontend to show
+        gi.last_active = time.time()
+        return jsonify({'state': gi.serialize(), 'available_actions': possible})
+
 @app.route('/api/game/<game_id>/action', methods=['POST'])
 def api_action(game_id):
+    """Apply a chosen action for the current (human) player.
+    Body: {"choice": [col] or [col1,col2]}
+    After applying, the server DOES NOT automatically roll again; frontend should call /roll to roll or /stop to bank.
+    """
     gi = games.get(game_id)
     if not gi:
         return jsonify({'error': 'game not found'}), 404
     body = request.get_json() or {}
-    action = body.get('action')
+    choice = body.get('choice')
+    if choice is None:
+        return jsonify({'error': 'no choice provided'}), 400
 
     with gi.lock:
         engine = gi.engine
-        # apply the action using common engine API names
-        if action is None:
-            return jsonify({'error': 'no action provided'}), 400
+        player = engine.get_current_player()
+        if getattr(player, 'is_human', False) is not True:
+            return jsonify({'error': 'Not human turn'}), 400
+
+        # Apply the action to temp_markers
         try:
-            if hasattr(engine, 'apply_action'):
-                engine.apply_action(action)
-            elif hasattr(engine, 'step'):
-                engine.step(action)
-            else:
-                return jsonify({'error': 'game engine cannot accept actions (no apply_action/step)'}), 500
-
-            # After human action, run AI turns synchronously until it's human's turn again (simple approach)
-            run_ai_turns(gi)
-
+            gi.turn_context['temp_markers'] = engine.apply_action(tuple(choice), gi.turn_context['temp_markers'], player)
         except Exception as e:
-            return jsonify({'error': str(e)}), 400
+            return jsonify({'error': f'apply_action error: {e}'}), 400
 
         gi.last_active = time.time()
+        # After applying action, compute available moves for the current dice (player can choose another action or decide to stop)
+        dice = gi.turn_context['dice']
+        pairs = engine.get_pairs(dice) if dice is not None else []
+        possible = engine.available_actions(pairs, gi.turn_context['temp_markers'], player)
+        return jsonify({'state': gi.serialize(), 'available_actions': possible})
+
+@app.route('/api/game/<game_id>/stop', methods=['POST'])
+def api_stop(game_id):
+    """Human decides to stop and bank temp_markers to permanent progress.
+    After banking, server will run AI turns until it's human's turn again."""
+    gi = games.get(game_id)
+    if not gi:
+        return jsonify({'error': 'game not found'}), 404
+
+    with gi.lock:
+        engine = gi.engine
+        player = engine.get_current_player()
+        if getattr(player, 'is_human', False) is not True:
+            return jsonify({'error': 'Not human turn'}), 400
+
+        # Bank the temp_markers into player's permanent progress & lock columns if completed
+        for col, val in gi.turn_context['temp_markers'].items():
+            player.progress[col] = val
+            if player.progress[col] >= COL_LENGTHS[col]:
+                engine.lock_column(col, player)
+
+        # Clear turn context, check winner, advance player
+        gi.clear_turn_context()
+        winner = engine.check_winner()
+        if winner:
+            gi.last_active = time.time()
+            return jsonify({'state': gi.serialize(), 'message': f'{winner.name} wins!'})
+
+        engine.next_player()
+
+        # If next player(s) are AI, run their turns synchronously and return resulting state
+        run_ai_turns(gi)
+        gi.last_active = time.time()
         return jsonify({'state': gi.serialize()})
-    
+
+def run_ai_turns(gi):
+    """Run AI turns (possibly multiple sequential AI players) until it's a human's turn or game over.
+    This function follows the logic in main.py: roll, enumerate possible, choose action, apply, decide continue/stop/bust.
+    """
+    engine = gi.engine
+
+    while True:
+        player = engine.get_current_player()
+        if getattr(player, 'is_human', False):
+            # stop AI loop and let human act
+            gi.start_new_turn_context()
+            break
+
+        # Start AI turn context
+        gi.start_new_turn_context()
+        player_temp = gi.turn_context['temp_markers']
+        busted = False
+
+        while True:
+            dice = engine.roll_dice()
+            gi.turn_context['dice'] = dice
+            gi.turn_context['rolls_count'] += 1
+            pairs = engine.get_pairs(dice)
+            possible = engine.available_actions(pairs, player_temp, player)
+
+            if not possible:
+                busted = True
+                break
+
+            # Ask AI to pick an action (HeuristicAI.choose_action expects: possible_actions, dice, pairs, temp_markers, game_state)
+            if hasattr(player, 'choose_action'):
+                action = player.choose_action(possible, dice, pairs, player_temp, engine)
+            elif hasattr(player, 'act'):
+                action = player.act(possible, dice, pairs, player_temp, engine)
+            else:
+                # No AI decision method
+                busted = True
+                break
+
+            if action is None:
+                busted = True
+                break
+
+            # Apply AI action
+            player_temp = engine.apply_action(tuple(action), player_temp, player)
+            gi.turn_context['temp_markers'] = player_temp
+
+            # Decide whether AI continues
+            try:
+                cont = player.should_continue(temp_markers=player_temp, game_state=engine)
+            except Exception:
+                cont = False
+
+            if not cont:
+                # Bank progress
+                for col, val in player_temp.items():
+                    player.progress[col] = val
+                    if player.progress[col] >= COL_LENGTHS[col]:
+                        engine.lock_column(col, player)
+                break
+            # else continue rolling for this AI
+
+        # AI finished (either busted or stopped). Clear temp if busted, or already banked if stopped.
+        if busted:
+            gi.clear_turn_context()
+        else:
+            gi.clear_turn_context()
+
+        # Check for winner
+        winner = engine.check_winner()
+        if winner:
+            return
+
+        # Next player
+        engine.next_player()
+        # Continue loop: either next is AI (loop) or human (break out next iteration)
+    # end run_ai_turns
+
 if __name__ == '__main__':
     app.run(debug=True)
