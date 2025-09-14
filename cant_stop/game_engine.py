@@ -86,3 +86,10 @@ class GameState:
                                 else:
                                     possible.append((val,))
         return possible
+    
+    def apply_action(self, choice, temp_markers, player):
+        for val in choice:
+            if val not in temp_markers:
+                temp_markers[val] = player.progress.get(val, 0)
+            temp_markers[val] += 1
+        return temp_markers
