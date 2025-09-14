@@ -93,3 +93,50 @@ class GameState:
                 temp_markers[val] = player.progress.get(val, 0)
             temp_markers[val] += 1
         return temp_markers
+    
+    def to_dict(self, temp_markers=None, dice=None):
+        """
+        Retourne un état JSON-sérialisable du jeu.
+        temp_markers et dice doivent être fournis par l'appelant si besoin.
+        """
+        # Récupère les infos des joueurs
+        players_info = []
+        for p in self.players:
+            players_info.append({
+                "name": p.name,
+                "progress": dict(p.progress),
+                "completed": list(p.completed)
+            })
+
+        # Plateau (qui a verrouillé quoi)
+        board_info = {col: list(names) for col, names in self.board.items()}
+
+        # Joueur courant
+        current_player = self.get_current_player().name
+
+        # Dés (si fournis)
+        dice_info = list(dice) if dice is not None else None
+
+        # Colonnes verrouillées
+        locked_columns = list(self.locked_columns)
+
+        # Actions possibles (si temp_markers et dice sont fournis)
+        available_moves = []
+        if temp_markers is not None and dice is not None:
+            pairs = self.get_pairs(dice)
+            available_moves = self.available_actions(pairs, temp_markers, self.get_current_player())
+
+        # Partie terminée ?
+        winner = self.check_winner()
+        game_over = winner is not None
+
+        return {
+            "players": players_info,
+            "board": board_info,
+            "locked_columns": locked_columns,
+            "current_player": current_player,
+            "dice": dice_info,
+            "available_moves": available_moves,
+            "game_over": game_over,
+            "winner": winner.name if winner else None
+        }

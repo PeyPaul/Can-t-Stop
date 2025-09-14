@@ -39,10 +39,6 @@ def play_turn(game_state, player):
         if possible:
             choice = player.choose_action(possible, dice, pairs, temp_markers, game_state)
             print(f"{player.name} a choisi la paire {choice}")
-            # for val in choice:
-            #     if val not in temp_markers:
-            #         temp_markers[val] = player.progress.get(val, 0)
-            #     temp_markers[val] += 1
             temp_markers = game_state.apply_action(choice, temp_markers, player)
             rolls_count += 1
 
@@ -65,7 +61,7 @@ def play_turn(game_state, player):
 def main():
     players = [
         HeuristicAI("Joueur 1", k_risk=0.95, alpha_future=0.5, eps_explore=0.05),
-        HumanPlayer("Joueur 2")
+        HeuristicAI("Joueur 2", k_risk=0.95, alpha_future=0.5, eps_explore=0.05)
     ]
     for p in players:
         p.progress = {col: 0 for col in COLUMNS}
