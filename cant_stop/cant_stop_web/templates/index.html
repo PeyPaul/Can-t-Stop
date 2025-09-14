@@ -1,0 +1,37 @@
+<!-- templates/index.html -->
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Can't Stop — Minimal</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <main>
+    <h1>Can't Stop — Minimal Web UI</h1>
+
+
+    <div>
+        Opponent:
+        <select id="opponent">
+            <option value="heuristic">Heuristic AI (strong)</option>
+            <option value="random">Random AI</option>
+            <option value="rl">RL Agent</option>
+        </select>
+        <button id="new-game">Start New Game</button>
+    </div>
+
+
+    <section>
+        <h2>Game</h2>
+        <div id="game-controls"></div>
+        <pre id="state">No game yet</pre>
+        <div id="actions"></div>
+    </section>
+
+
+    </main>
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
