@@ -34,45 +34,46 @@ def play_turn(game_state, player):
     while True:
         dice = game_state.roll_dice()
         pairs = game_state.get_pairs(dice)
-        possible = []
-        for i, (a,b) in enumerate(pairs):
-            if not game_state.is_column_locked(a) and not game_state.is_column_locked(b):
-                if a == b:
-                    if a in temp_markers:
-                        if temp_markers[a] < COL_LENGTHS[a]-1:
-                            possible.append((a, b))
-                    else:
-                        if len(temp_markers) < MAX_TEMP_MARKERS and player.progress[a] < COL_LENGTHS[a]-1:
-                            possible.append((a, b))
-                else:
-                    if a in temp_markers and b in temp_markers:
-                        if temp_markers[a] < COL_LENGTHS[a] and temp_markers[b] < COL_LENGTHS[b]:
-                            possible.append((a, b))
-                    elif a not in temp_markers and b not in temp_markers:
-                        if len(temp_markers) + 1 <MAX_TEMP_MARKERS:
-                            possible.append((a, b))
-                    elif a in temp_markers and b not in temp_markers:
-                        if temp_markers[a] < COL_LENGTHS[a] and len(temp_markers) < MAX_TEMP_MARKERS:
-                            possible.append((a, b))
-                    else:
-                        if temp_markers[b] < COL_LENGTHS[b] and len(temp_markers) < MAX_TEMP_MARKERS:
-                            possible.append((a, b))
+        # possible = []
+        # for i, (a,b) in enumerate(pairs):
+        #     if not game_state.is_column_locked(a) and not game_state.is_column_locked(b):
+        #         if a == b:
+        #             if a in temp_markers:
+        #                 if temp_markers[a] < COL_LENGTHS[a]-1:
+        #                     possible.append((a, b))
+        #             else:
+        #                 if len(temp_markers) < MAX_TEMP_MARKERS and player.progress[a] < COL_LENGTHS[a]-1:
+        #                     possible.append((a, b))
+        #         else:
+        #             if a in temp_markers and b in temp_markers:
+        #                 if temp_markers[a] < COL_LENGTHS[a] and temp_markers[b] < COL_LENGTHS[b]:
+        #                     possible.append((a, b))
+        #             elif a not in temp_markers and b not in temp_markers:
+        #                 if len(temp_markers) + 1 <MAX_TEMP_MARKERS:
+        #                     possible.append((a, b))
+        #             elif a in temp_markers and b not in temp_markers:
+        #                 if temp_markers[a] < COL_LENGTHS[a] and len(temp_markers) < MAX_TEMP_MARKERS:
+        #                     possible.append((a, b))
+        #             else:
+        #                 if temp_markers[b] < COL_LENGTHS[b] and len(temp_markers) < MAX_TEMP_MARKERS:
+        #                     possible.append((a, b))
 
-            if (a,b) not in possible:
-                for val in (a, b):
-                    if not game_state.is_column_locked(val):
-                        if val in temp_markers:
-                            if temp_markers[val] < COL_LENGTHS[val]:
-                                if val == a:
-                                    possible.append((val,))
-                                else:
-                                    possible.append((val,))
-                        else:
-                            if len(temp_markers) < MAX_TEMP_MARKERS:
-                                if val == a:
-                                    possible.append((val,))
-                                else:
-                                    possible.append((val,))
+        #     if (a,b) not in possible:
+        #         for val in (a, b):
+        #             if not game_state.is_column_locked(val):
+        #                 if val in temp_markers:
+        #                     if temp_markers[val] < COL_LENGTHS[val]:
+        #                         if val == a:
+        #                             possible.append((val,))
+        #                         else:
+        #                             possible.append((val,))
+        #                 else:
+        #                     if len(temp_markers) < MAX_TEMP_MARKERS:
+        #                         if val == a:
+        #                             possible.append((val,))
+        #                         else:
+        #                             possible.append((val,))
+        possible = game_state.available_actions(pairs, temp_markers, player)
         
         if possible:
             choice = player.choose_action(possible, dice, pairs, temp_markers, game_state)
